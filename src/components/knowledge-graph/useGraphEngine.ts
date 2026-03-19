@@ -9,7 +9,7 @@ import {
   type SimulationLinkDatum,
 } from 'd3-force'
 import type { KnowledgeEntry } from '@/lib/api'
-import type { GraphNode, GraphEdge, SectionNode, TopicNode, GraphPreset } from './graph-types'
+import type { GraphNode, GraphEdge, GradeNode, SectionNode, TopicNode, GraphPreset } from './graph-types'
 import { getSectionMeta, PHYSICS, RENDER } from './graph-constants'
 
 interface GraphEngineOptions {
@@ -31,7 +31,8 @@ export function useGraphEngine({
 }: GraphEngineOptions) {
   const simRef = useRef<Simulation<GraphNode, SimulationLinkDatum<GraphNode>> | null>(null)
   const [nodeCount, setNodeCount] = useState(0)
-  const bySectionRef = useRef<Map<string, KnowledgeEntry[]>>(new Map())
+  // grade → section → entries
+  const byGradeRef = useRef<Map<number, Map<string, KnowledgeEntry[]>>>(new Map())
 
   function startSimulation(nodes: GraphNode[], edges: GraphEdge[]) {
     simRef.current?.stop()
@@ -48,13 +49,17 @@ export function useGraphEngine({
     const sim = forceSimulation<GraphNode>(nodes)
       .alphaDecay(PHYSICS.alphaDecay)
       .force('charge', forceManyBody<GraphNode>().strength((d) =>
-        d.type === 'section' ? PHYSICS.sectionCharge : PHYSICS.topicCharge
+        d.type === 'grade' ? PHYSICS.gradeCharge
+          : d.type === 'section' ? PHYSICS.sectionCharge
+          : PHYSICS.topicCharge
       ))
       .force('link', forceLink<GraphNode, SimulationLinkDatum<GraphNode>>(linkData)
         .id((d) => d.id)
         .distance((d) => {
           const src = d.source as GraphNode
           const tgt = d.target as GraphNode
+          if (src.type === 'grade' && tgt.type === 'grade') return PHYSICS.gradeLinkDistance
+          if (src.type === 'grade' || tgt.type === 'grade') return PHYSICS.gradeSectionLinkDistance
           if (src.type === 'section' && tgt.type === 'section') return PHYSICS.sectionLinkDistance
           return PHYSICS.topicLinkDistance
         })
@@ -70,22 +75,28 @@ export function useGraphEngine({
     simRef.current = sim
   }
 
-  // Build section nodes from entries
+  // Build grade nodes from entries
   useEffect(() => {
     simRef.current?.stop()
 
-    const grouped = new Map<string, KnowledgeEntry[]>()
+    // Group: grade → section → entries
+    const byGrade = new Map<number, Map<string, KnowledgeEntry[]>>()
     for (const entry of entries) {
       if (preset.filterTopics && !preset.filterTopics(entry)) continue
-      const list = grouped.get(entry.section) || []
+      let sectionMap = byGrade.get(entry.grade)
+      if (!sectionMap) {
+        sectionMap = new Map()
+        byGrade.set(entry.grade, sectionMap)
+      }
+      const list = sectionMap.get(entry.section) || []
       list.push(entry)
-      grouped.set(entry.section, list)
+      sectionMap.set(entry.section, list)
     }
-    bySectionRef.current = grouped
+    byGradeRef.current = byGrade
 
-    const sectionIds = Array.from(grouped.keys())
+    const grades = Array.from(byGrade.keys()).sort((a, b) => a - b)
 
-    if (sectionIds.length === 0) {
+    if (grades.length === 0) {
       nodesRef.current = []
       edgesRef.current = []
       setNodeCount(0)
@@ -93,49 +104,137 @@ export function useGraphEngine({
       return
     }
 
-    const sectionNodes: SectionNode[] = sectionIds.map((sectionId) => {
-      const topics = grouped.get(sectionId) || []
-      const meta = getSectionMeta(sectionId)
+    const gradeNodes: GradeNode[] = grades.map((grade) => {
+      const sectionMap = byGrade.get(grade)!
+      let total = 0, mastered = 0, learning = 0
+      for (const topics of sectionMap.values()) {
+        total += topics.length
+        mastered += topics.filter((t) => t.status === 'mastered').length
+        learning += topics.filter((t) => t.status === 'learning').length
+      }
       return {
-        type: 'section' as const,
-        id: `section:${sectionId}`,
-        label: sectionId,
-        shortLabel: meta.short,
-        color: meta.color,
+        type: 'grade' as const,
+        id: `grade:${grade}`,
+        grade,
         expanded: false,
-        radius: RENDER.sectionRadius,
-        total: topics.length,
-        mastered: topics.filter((t) => t.status === 'mastered').length,
-        learning: topics.filter((t) => t.status === 'learning').length,
+        radius: RENDER.gradeRadius,
+        total,
+        mastered,
+        learning,
       }
     })
 
-    const sectionEdges: GraphEdge[] = []
-    for (let i = 0; i < sectionNodes.length - 1; i++) {
-      sectionEdges.push({
-        source: sectionNodes[i].id,
-        target: sectionNodes[i + 1].id,
-        type: 'section-section',
+    // Chain grade nodes
+    const gradeEdges: GraphEdge[] = []
+    for (let i = 0; i < gradeNodes.length - 1; i++) {
+      gradeEdges.push({
+        source: gradeNodes[i].id,
+        target: gradeNodes[i + 1].id,
+        type: 'grade-grade',
       })
     }
-    if (sectionNodes.length >= 3) {
-      sectionEdges.push({
-        source: sectionNodes[sectionNodes.length - 1].id,
-        target: sectionNodes[0].id,
-        type: 'section-section',
+    if (gradeNodes.length >= 3) {
+      gradeEdges.push({
+        source: gradeNodes[gradeNodes.length - 1].id,
+        target: gradeNodes[0].id,
+        type: 'grade-grade',
       })
     }
 
-    nodesRef.current = sectionNodes
-    edgesRef.current = sectionEdges
-    setNodeCount(sectionNodes.length)
+    nodesRef.current = gradeNodes
+    edgesRef.current = gradeEdges
+    setNodeCount(gradeNodes.length)
 
-    startSimulation(sectionNodes, sectionEdges)
+    startSimulation(gradeNodes, gradeEdges)
 
     return () => {
       simRef.current?.stop()
     }
   }, [entries, preset])
+
+  const toggleGrade = useCallback((grade: number) => {
+    const gradeNodeId = `grade:${grade}`
+    const nodes = nodesRef.current
+    const edges = edgesRef.current
+
+    const gradeNode = nodes.find((n) => n.id === gradeNodeId) as GradeNode | undefined
+    if (!gradeNode) return
+
+    if (gradeNode.expanded) {
+      // Collapse: remove all sections (and their expanded topics) for this grade
+      const sectionIds = new Set(
+        nodes
+          .filter((n) => n.type === 'section' && (n as SectionNode).gradeId === grade)
+          .map((n) => n.id)
+      )
+      // Also find topics belonging to those sections
+      const topicIds = new Set(
+        nodes
+          .filter((n) => n.type === 'topic' && sectionIds.has(`section:${(n as TopicNode).sectionId}`))
+          .map((n) => n.id)
+      )
+      const removeIds = new Set([...sectionIds, ...topicIds])
+
+      nodesRef.current = nodes.filter((n) => !removeIds.has(n.id))
+      edgesRef.current = edges.filter(
+        (e) => !removeIds.has(e.source) && !removeIds.has(e.target)
+      )
+      gradeNode.expanded = false
+    } else {
+      // Expand: create section nodes for this grade
+      const sectionMap = byGradeRef.current.get(grade)
+      if (!sectionMap) return
+
+      const gx = gradeNode.x ?? 0
+      const gy = gradeNode.y ?? 0
+      const sectionIds = Array.from(sectionMap.keys())
+
+      const sectionNodes: SectionNode[] = sectionIds.map((sectionId, i) => {
+        const topics = sectionMap.get(sectionId) || []
+        const meta = getSectionMeta(sectionId)
+        const angle = (2 * Math.PI * i) / sectionIds.length
+        const dist = 80 + Math.random() * 30
+        return {
+          type: 'section' as const,
+          id: `section:${sectionId}`,
+          gradeId: grade,
+          label: sectionId,
+          shortLabel: meta.short,
+          color: meta.color,
+          expanded: false,
+          radius: RENDER.sectionRadius,
+          total: topics.length,
+          mastered: topics.filter((t) => t.status === 'mastered').length,
+          learning: topics.filter((t) => t.status === 'learning').length,
+          x: gx + Math.cos(angle) * dist,
+          y: gy + Math.sin(angle) * dist,
+        }
+      })
+
+      const newEdges: GraphEdge[] = sectionNodes.map((sn) => ({
+        source: gradeNodeId,
+        target: sn.id,
+        type: 'grade-section' as const,
+      }))
+
+      // Chain sections together
+      for (let i = 0; i < sectionNodes.length - 1; i++) {
+        newEdges.push({
+          source: sectionNodes[i].id,
+          target: sectionNodes[i + 1].id,
+          type: 'section-section',
+        })
+      }
+
+      nodesRef.current = [...nodes, ...sectionNodes]
+      edgesRef.current = [...edges, ...newEdges]
+      gradeNode.expanded = true
+    }
+
+    setNodeCount(nodesRef.current.length)
+    startSimulation(nodesRef.current, edgesRef.current)
+    simRef.current?.alpha(0.3).restart()
+  }, [requestRedraw, nodesRef, edgesRef])
 
   const toggleSection = useCallback((sectionId: string) => {
     const nodeId = `section:${sectionId}`
@@ -159,8 +258,9 @@ export function useGraphEngine({
       )
       sectionNode.expanded = false
     } else {
-      // Expand
-      const sectionEntries = bySectionRef.current.get(sectionId) || []
+      // Expand — find entries for this section within the grade
+      const sectionMap = byGradeRef.current.get(sectionNode.gradeId)
+      const sectionEntries = sectionMap?.get(sectionId) || []
       const maxTopics = 30
       const subset = sectionEntries.length > maxTopics ? sectionEntries.slice(0, maxTopics) : sectionEntries
       const sx = sectionNode.x ?? 0
@@ -203,6 +303,7 @@ export function useGraphEngine({
 
   return {
     nodeCount,
+    toggleGrade,
     toggleSection,
   }
 }

@@ -20,8 +20,11 @@ export const STATUS_TEXT: Record<string, string> = {
 }
 
 export const PHYSICS = {
+  gradeCharge: -800,
   sectionCharge: -600,
   topicCharge: -120,
+  gradeLinkDistance: 220,
+  gradeSectionLinkDistance: 120,
   sectionLinkDistance: 180,
   topicLinkDistance: 60,
   collisionPadding: 8,
@@ -30,6 +33,7 @@ export const PHYSICS = {
 }
 
 export const RENDER = {
+  gradeRadius: 42,
   sectionRadius: 32,
   topicRadius: 10,
   topicRadiusMastered: 12,

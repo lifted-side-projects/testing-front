@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import type { KnowledgeEntry } from '@/lib/api'
-import type { GraphNode, GraphPreset, TooltipData, ViewTransform, GraphEdge, SectionNode } from './graph-types'
+import type { GraphNode, GraphPreset, TooltipData, ViewTransform, GraphEdge, GradeNode, SectionNode } from './graph-types'
 import { STATUS_COLORS, STATUS_TEXT } from './graph-constants'
 import { useCanvasRenderer } from './useCanvasRenderer'
 import { usePointerEvents } from './usePointerEvents'
@@ -31,7 +31,7 @@ export function TopicGraph({ entries, preset, fullscreen, onToggleFullscreen }: 
     selectedIdRef,
   })
 
-  const { nodeCount, toggleSection } = useGraphEngine({
+  const { nodeCount, toggleGrade, toggleSection } = useGraphEngine({
     entries,
     preset,
     requestRedraw,
@@ -56,7 +56,10 @@ export function TopicGraph({ entries, preset, fullscreen, onToggleFullscreen }: 
     selectedIdRef.current = node.id
     requestRedraw()
 
-    if (node.type === 'section') {
+    if (node.type === 'grade') {
+      toggleGrade((node as GradeNode).grade)
+      setTooltip(null)
+    } else if (node.type === 'section') {
       toggleSection((node as SectionNode).label)
       setTooltip(null)
     } else {
@@ -67,7 +70,7 @@ export function TopicGraph({ entries, preset, fullscreen, onToggleFullscreen }: 
         requestRedraw()
       }, 3000)
     }
-  }, [toggleSection, requestRedraw])
+  }, [toggleGrade, toggleSection, requestRedraw])
 
   const onDoubleTap = useCallback(() => {
     transformRef.current = { tx: 0, ty: 0, scale: 1 }
@@ -150,6 +153,8 @@ export function TopicGraph({ entries, preset, fullscreen, onToggleFullscreen }: 
               <span className="text-ink-400 text-[10px]">
                 {tooltip.node.type === 'topic'
                   ? STATUS_TEXT[tooltip.node.status]
+                  : tooltip.node.type === 'grade'
+                  ? `${(tooltip.node as GradeNode).grade} класс — ${(tooltip.node as GradeNode).mastered}/${(tooltip.node as GradeNode).total} изучено`
                   : `${(tooltip.node as SectionNode).mastered}/${(tooltip.node as SectionNode).total} изучено`}
               </span>
               {tooltip.node.type === 'topic' && tooltip.node.score > 0 && (

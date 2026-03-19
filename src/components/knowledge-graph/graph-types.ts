@@ -3,9 +3,21 @@ import type { KnowledgeEntry } from '@/lib/api'
 
 export type TopicStatus = 'unknown' | 'learning' | 'mastered'
 
+export interface GradeNode extends SimulationNodeDatum {
+  type: 'grade'
+  id: string
+  grade: number
+  expanded: boolean
+  radius: number
+  total: number
+  mastered: number
+  learning: number
+}
+
 export interface SectionNode extends SimulationNodeDatum {
   type: 'section'
   id: string
+  gradeId: number
   label: string
   shortLabel: string
   color: string
@@ -27,12 +39,12 @@ export interface TopicNode extends SimulationNodeDatum {
   radius: number
 }
 
-export type GraphNode = SectionNode | TopicNode
+export type GraphNode = GradeNode | SectionNode | TopicNode
 
 export interface GraphEdge {
   source: string
   target: string
-  type: 'section-section' | 'section-topic'
+  type: 'grade-grade' | 'grade-section' | 'section-section' | 'section-topic'
 }
 
 export interface ViewTransform {

@@ -1,4 +1,4 @@
-import type { GraphNode, GraphEdge, SectionNode, TopicNode } from './graph-types'
+import type { GraphNode, GraphEdge, GradeNode, SectionNode, TopicNode } from './graph-types'
 import { STATUS_COLORS } from './graph-constants'
 
 export function drawEdges(
@@ -21,7 +21,13 @@ export function drawEdges(
     ctx.moveTo(ax, ay)
     ctx.lineTo(bx, by)
 
-    if (edge.type === 'section-section') {
+    if (edge.type === 'grade-grade') {
+      ctx.strokeStyle = hl ? 'rgba(232,185,49,0.5)' : 'rgba(61,71,96,0.4)'
+      ctx.lineWidth = (hl ? 2.5 : 1.5) / scale
+    } else if (edge.type === 'grade-section') {
+      ctx.strokeStyle = hl ? 'rgba(232,185,49,0.45)' : 'rgba(61,71,96,0.3)'
+      ctx.lineWidth = (hl ? 2 : 1) / scale
+    } else if (edge.type === 'section-section') {
       ctx.strokeStyle = hl ? 'rgba(232,185,49,0.5)' : 'rgba(61,71,96,0.35)'
       ctx.lineWidth = (hl ? 2 : 1.2) / scale
     } else {
@@ -114,6 +120,86 @@ export function drawSectionNode(
   }
 }
 
+export function drawGradeNode(
+  ctx: CanvasRenderingContext2D,
+  node: GradeNode,
+  selected: boolean,
+  scale: number,
+) {
+  const x = node.x ?? 0
+  const y = node.y ?? 0
+  const r = node.radius
+
+  // Glow
+  ctx.beginPath()
+  ctx.arc(x, y, r + (selected ? 7 : 5), 0, Math.PI * 2)
+  ctx.fillStyle = selected
+    ? 'rgba(232,185,49,0.14)'
+    : 'rgba(122,139,166,0.1)'
+  ctx.fill()
+
+  // Main circle
+  ctx.beginPath()
+  ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.fillStyle = '#131825'
+  ctx.fill()
+  ctx.strokeStyle = selected ? '#e8b931' : '#7a8ba6'
+  ctx.lineWidth = (selected ? 3 : 2) / scale
+  ctx.stroke()
+
+  // Progress arcs
+  if (node.total > 0) {
+    const masteredRatio = node.mastered / node.total
+    if (masteredRatio > 0) {
+      ctx.beginPath()
+      ctx.arc(x, y, r - 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * masteredRatio)
+      ctx.strokeStyle = '#52b788'
+      ctx.lineWidth = 3.5 / scale
+      ctx.stroke()
+    }
+    const learningEnd = (node.mastered + node.learning) / node.total
+    if (node.learning > 0) {
+      ctx.beginPath()
+      ctx.arc(x, y, r - 4, -Math.PI / 2 + Math.PI * 2 * masteredRatio, -Math.PI / 2 + Math.PI * 2 * learningEnd)
+      ctx.strokeStyle = '#e8b931'
+      ctx.lineWidth = 3.5 / scale
+      ctx.stroke()
+    }
+  }
+
+  // Grade number
+  const numSize = 22 / scale
+  ctx.font = `700 ${numSize}px "DM Sans", sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#e2e8f0'
+  ctx.fillText(String(node.grade), x, y)
+
+  // Count badge
+  if (scale > 0.35) {
+    const badgeText = `${node.mastered}/${node.total}`
+    const fs = 8 / scale
+    ctx.font = `600 ${fs}px "DM Sans", sans-serif`
+    const tw = ctx.measureText(badgeText).width
+    const bx = x + r * 0.7
+    const by = y - r * 0.7
+    const pad = 3 / scale
+
+    ctx.beginPath()
+    ctx.roundRect(bx - tw / 2 - pad, by - fs / 2 - pad, tw + pad * 2, fs + pad * 2, 4 / scale)
+    ctx.fillStyle = '#1a1f2e'
+    ctx.fill()
+    ctx.strokeStyle = '#7a8ba655'
+    ctx.lineWidth = 0.5 / scale
+    ctx.stroke()
+
+    ctx.fillStyle = '#c8d0de'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(badgeText, bx, by)
+  }
+}
+
 export function drawTopicNode(
   ctx: CanvasRenderingContext2D,
   node: TopicNode,
@@ -165,7 +251,14 @@ export function drawLabels(
     const y = node.y ?? 0
     const sel = node.id === selectedId
 
-    if (node.type === 'section') {
+    if (node.type === 'grade') {
+      const fs = (sel ? 12 : 11) / scale
+      ctx.font = `600 ${fs}px "DM Sans", sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+      ctx.fillStyle = sel ? '#f5f5f5' : '#a0aec0'
+      ctx.fillText(`${node.grade} класс`, x, y + node.radius + 6)
+    } else if (node.type === 'section') {
       const fs = (sel ? 11 : 10) / scale
       ctx.font = `600 ${fs}px "DM Sans", sans-serif`
       ctx.textAlign = 'center'
@@ -200,7 +293,12 @@ export function drawScene(
 
   drawEdges(ctx, edges, nodeMap, selectedId, scale)
 
-  // Draw section nodes first, then topic nodes on top
+  // Draw grade nodes first, then sections, then topics on top
+  for (const node of nodes) {
+    if (node.type === 'grade') {
+      drawGradeNode(ctx, node as GradeNode, node.id === selectedId, scale)
+    }
+  }
   for (const node of nodes) {
     if (node.type === 'section') {
       drawSectionNode(ctx, node as SectionNode, node.id === selectedId, scale)
