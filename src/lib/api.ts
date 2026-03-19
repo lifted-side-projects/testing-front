@@ -1,6 +1,6 @@
 import { getToken, clearAuth } from './auth'
 
-const BASE = '/api'
+const BASE = import.meta.env.VITE_API_URL || '/api'
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()

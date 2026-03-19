@@ -8,6 +8,7 @@ import { DiagnosticPage } from './pages/DiagnosticPage'
 import { DiagnosticResultPage } from './pages/DiagnosticResultPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { KnowledgeMapPage } from './pages/KnowledgeMapPage'
+import { KnowledgeGraphPage } from './pages/KnowledgeGraphPage'
 import { LessonPage } from './pages/LessonPage'
 import { PresentationPage } from './pages/PresentationPage'
 import { QuizPage } from './pages/QuizPage'
@@ -58,6 +59,9 @@ export default function App() {
             } />
             <Route path="/knowledge-map" element={
               <ProtectedRoute><KnowledgeMapPage /></ProtectedRoute>
+            } />
+            <Route path="/knowledge-graph" element={
+              <ProtectedRoute><KnowledgeGraphPage /></ProtectedRoute>
             } />
             <Route path="/lesson/:topicId" element={
               <ProtectedRoute><LessonPage /></ProtectedRoute>

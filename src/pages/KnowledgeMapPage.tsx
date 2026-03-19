@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api, type KnowledgeEntry } from '@/lib/api'
 import { PageShell } from '@/components/PageShell'
 import { cn } from '@/lib/utils'
-import { Search, BookOpen, CheckCircle2, Circle, ChevronRight } from 'lucide-react'
+import { Search, BookOpen, CheckCircle2, Circle, ChevronRight, GitBranch } from 'lucide-react'
 
 const GRADE_FILTERS = [
   { label: 'Все', value: 0 },
@@ -68,7 +68,16 @@ export function KnowledgeMapPage() {
     <PageShell>
       <div className="px-5 pt-6 page-enter">
         {/* Header */}
-        <h1 className="font-display text-2xl font-bold text-ink-50 mb-1">Карта знаний</h1>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="font-display text-2xl font-bold text-ink-50">Карта знаний</h1>
+          <button
+            onClick={() => navigate('/knowledge-graph')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-ink-800/50 border border-ink-700/25 text-ink-400 text-xs font-medium active:scale-[0.97] transition-all"
+          >
+            <GitBranch size={13} />
+            <span>Граф</span>
+          </button>
+        </div>
         <p className="text-ink-400 text-sm mb-5">
           Изучено {totalMastered} из {totalAll} тем ({masteredPercent}%)
         </p>
