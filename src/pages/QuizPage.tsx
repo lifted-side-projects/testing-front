@@ -56,6 +56,17 @@ export function QuizPage() {
     )
   }
 
+  // Submitting — fullscreen loader (AI checking takes time)
+  if (submitMutation.isPending) {
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4 page-enter">
+        <Loader2 size={32} className="text-violet-400 animate-spin" />
+        <h2 className="font-display text-lg font-semibold text-ink-100 text-center">Проверяем ответы</h2>
+        <p className="text-ink-500 text-sm text-center max-w-[240px]">AI анализирует твои ответы, это может занять до минуты</p>
+      </div>
+    )
+  }
+
   // No quiz available
   if (isError || !session || !questions.length) {
     return (

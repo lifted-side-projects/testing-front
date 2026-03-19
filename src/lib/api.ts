@@ -30,16 +30,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   // Auth
-  register: (data: { email: string; password: string; name: string }) =>
-    request<{ token: string; user: { id: number; email: string; name: string; role: string } }>('/auth/register', {
+  register: (data: { email: string; password: string; name: string; interest?: string }) =>
+    request<{ token: string; user: { id: number; email: string; name: string; role: string; interest: string | null } }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   login: (data: { email: string; password: string }) =>
-    request<{ token: string; user: { id: number; email: string; name: string; role: string } }>('/auth/login', {
+    request<{ token: string; user: { id: number; email: string; name: string; role: string; interest: string | null } }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+
+  updateInterest: (interest: 'anime' | 'videogames') =>
+    request<{ user: { id: number; email: string; name: string; role: string; interest: string | null } }>('/auth/interest', {
+      method: 'PATCH',
+      body: JSON.stringify({ interest }),
     }),
 
   // Diagnostic
@@ -77,11 +83,22 @@ export const api = {
   getAvailableQuiz: (topicId: number) =>
     request<QuizSession>(`/student/quiz/available/${topicId}`),
 
-  submitQuiz: (sessionId: string, answers: Record<string, unknown>) =>
-    request<QuizResult>(`/student/quiz/${sessionId}/submit`, {
+  submitQuiz: (sessionId: string, answers: Record<number, unknown>) =>
+    request<{ sessionId: string; topicId: number; totalQuestions: number; correctCount: number; score: number; passed: boolean; results: QuizResult['answers'] }>(`/student/quiz/${sessionId}/submit`, {
       method: 'POST',
-      body: JSON.stringify({ answers }),
-    }),
+      body: JSON.stringify({
+        answers: Object.entries(answers).map(([questionId, answer]) => ({
+          questionId: Number(questionId),
+          answer,
+        })),
+      }),
+    }).then((r) => ({
+      sessionId: r.sessionId,
+      score: r.score,
+      passed: r.passed,
+      totalQuestions: r.totalQuestions,
+      answers: r.results,
+    })),
 
   getQuizResult: (sessionId: string) =>
     request<QuizResult>(`/student/quiz/${sessionId}`),
@@ -149,6 +166,7 @@ export interface PresentationStatus {
   jobId: string
   status: 'pending' | 'planning' | 'generating' | 'done' | 'error'
   topicId: number
+  style?: 'classic' | 'manga' | 'rpg'
   totalSlides: number
   completedSlides: number
   slides: { slideNumber: number; type: string; title: string; imagePath: string }[]
@@ -180,6 +198,7 @@ export interface QuizResult {
     questionId: number
     questionText: string
     questionType: string
+    options?: { label: string; text: string }[] | null
     studentAnswer: unknown
     correctAnswer: unknown
     isCorrect: boolean

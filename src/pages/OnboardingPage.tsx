@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { setOnboarded, getUser } from '@/lib/auth'
+import { setOnboarded, getUser, setAuth, getToken } from '@/lib/auth'
+import { api } from '@/lib/api'
 import { Button } from '@/components/Button'
 import { Gamepad2, Tv, ChevronRight, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -34,13 +35,29 @@ export function OnboardingPage() {
   const [step, setStep] = useState(0)
   const user = getUser()
 
-  function handleContinue() {
+  const [saving, setSaving] = useState(false)
+
+  async function handleContinue() {
     if (step === 0) {
       setStep(1)
       return
     }
     if (selected) {
+      const backendInterest = selected === 'games' ? 'videogames' : 'anime'
       localStorage.setItem('chemprep_interest', selected)
+
+      // Save interest to backend
+      setSaving(true)
+      try {
+        const res = await api.updateInterest(backendInterest as 'anime' | 'videogames')
+        const token = getToken()
+        if (token) setAuth(token, res.user)
+      } catch {
+        // Non-critical — continue even if save fails
+      } finally {
+        setSaving(false)
+      }
+
       setOnboarded()
       navigate('/diagnostic')
     }
@@ -148,7 +165,8 @@ export function OnboardingPage() {
         <Button
           size="lg"
           onClick={handleContinue}
-          disabled={step === 1 && !selected}
+          disabled={(step === 1 && !selected) || saving}
+          loading={saving}
           className="flex items-center justify-center gap-2"
         >
           {step === 0 ? 'Поехали' : 'Продолжить'}

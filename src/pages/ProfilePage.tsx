@@ -64,6 +64,14 @@ export function ProfilePage() {
           <h1 className="font-display text-xl font-bold text-ink-50">{user?.name}</h1>
           <p className="text-sm mt-0.5" style={{ color: rank.color }}>{rank.titleRu}</p>
           <p className="text-ink-500 text-xs mt-0.5">{user?.email}</p>
+          {user?.interest && (
+            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-ink-800/50 border border-ink-700/30">
+              <span className="text-sm">{user.interest === 'anime' ? '🎌' : '🎮'}</span>
+              <span className="text-ink-300 text-xs font-medium">
+                {user.interest === 'anime' ? 'Аниме-стиль' : 'Геймер-стиль'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Stats row */}

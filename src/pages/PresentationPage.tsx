@@ -126,14 +126,10 @@ export function PresentationPage() {
             <Minimize2 size={18} />
           </button>
         )}
-        <div className="w-full max-w-[400px] aspect-video relative rounded-xl overflow-hidden bg-ink-900 shadow-2xl">
+        <div className="w-full max-w-[400px] aspect-video rounded-xl overflow-hidden bg-ink-900 shadow-2xl">
           {imageUrl && (
             <img src={imageUrl} alt={slide.title} className="w-full h-full object-contain fade-in" key={currentSlide} />
           )}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-            <p className="text-white/90 text-sm font-medium">{slide.title}</p>
-            <p className="text-white/40 text-xs capitalize">{slide.type}</p>
-          </div>
         </div>
       </div>
 

@@ -7,18 +7,45 @@ import {
 } from 'lucide-react'
 import type { QuizResult } from '@/lib/api'
 
+// Resolve letter label (e.g. "B") to option text using options array
+function resolveAnswer(
+  answer: unknown,
+  options?: { label: string; text: string }[] | null,
+): string {
+  if (!answer) return '—'
+  if (!options || options.length === 0) return String(answer)
+
+  // Single letter: "B" → find option with label "B"
+  if (typeof answer === 'string') {
+    const opt = options.find((o) => o.label.toUpperCase() === answer.toUpperCase())
+    return opt ? opt.text : String(answer)
+  }
+
+  // Array of letters: ["A","C"] → resolve each
+  if (Array.isArray(answer)) {
+    return answer
+      .map((a) => {
+        const opt = options.find((o) => o.label.toUpperCase() === String(a).toUpperCase())
+        return opt ? opt.text : String(a)
+      })
+      .join(', ')
+  }
+
+  return String(answer)
+}
+
 export function QuizResultPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const result = location.state?.result as QuizResult | undefined
   const topicId = location.state?.topicId as number | undefined
 
-  if (!result) {
+  if (!result || !result.answers) {
     navigate('/')
     return null
   }
 
-  const percentage = Math.round(result.score * 100)
+  const percentage = result.score <= 1 ? Math.round(result.score * 100) : Math.round(result.score)
   const passed = result.passed
 
   return (
@@ -86,14 +113,25 @@ export function QuizResultPage() {
                 <p className="text-ink-200 text-sm leading-snug">{answer.questionText}</p>
               </div>
 
-              {!answer.isCorrect && answer.explanation && (
-                <div className="ml-6 mt-2 bg-ink-800/30 rounded-lg px-3 py-2">
-                  <p className="text-ink-300 text-xs">
-                    <span className="text-amber-400 font-medium">Правильный ответ:</span>{' '}
-                    {typeof answer.correctAnswer === 'string'
-                      ? answer.correctAnswer
-                      : JSON.stringify(answer.correctAnswer)}
-                  </p>
+              {!answer.isCorrect && (
+                <div className="ml-6 mt-2 space-y-1.5">
+                  <div className="bg-ink-800/30 rounded-lg px-3 py-2">
+                    <p className="text-ink-400 text-xs">
+                      <span className="text-coral-400 font-medium">Твой ответ:</span>{' '}
+                      {resolveAnswer(answer.studentAnswer, answer.options)}
+                    </p>
+                  </div>
+                  <div className="bg-ink-800/30 rounded-lg px-3 py-2">
+                    <p className="text-ink-300 text-xs">
+                      <span className="text-sage-400 font-medium">Правильный ответ:</span>{' '}
+                      {resolveAnswer(answer.correctAnswer, answer.options)}
+                    </p>
+                  </div>
+                  {answer.explanation && (
+                    <div className="bg-ink-800/30 rounded-lg px-3 py-2">
+                      <p className="text-ink-400 text-xs leading-relaxed">{answer.explanation}</p>
+                    </div>
+                  )}
                 </div>
               )}
 

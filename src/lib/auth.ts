@@ -8,6 +8,7 @@ export interface User {
   email: string
   name: string
   role: string
+  interest?: string | null
 }
 
 export function getToken(): string | null {
