@@ -115,6 +115,54 @@ export const api = {
       body: JSON.stringify({ messages }),
     }).then(r => r.suggestions).catch(() => []),
 
+  diagnosticChatSuggestions: (sessionId: string, questionId: number, studentAnswer: unknown, messages: { role: string; content: string }[]) =>
+    request<{ suggestions: string[] }>('/diagnostic/chat/suggestions', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId, questionId, studentAnswer, messages }),
+    }).then(r => r.suggestions).catch(() => []),
+
+  // Interactive Diagnostic
+  startDiagnostic: () =>
+    request<DiagnosticSession>('/diagnostic/start', { method: 'POST' }),
+
+  recordDiagnosticAnswer: (data: { sessionId: string; questionId: number; answer: unknown; isCorrect: boolean; score: number }) =>
+    request<{ ok: boolean }>('/diagnostic/answer', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  completeDiagnostic: (sessionId: string) =>
+    request<DiagnosticResult>('/diagnostic/complete', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId }),
+    }),
+
+  getDiagnosticResult: (sessionId: string) =>
+    request<DiagnosticResult>(`/diagnostic/result/${sessionId}`),
+
+  diagnosticChatStream: async (
+    sessionId: string,
+    questionId: number,
+    message: string,
+    history: { role: string; content: string }[],
+    studentAnswer?: unknown,
+  ): Promise<ReadableStream<Uint8Array>> => {
+    const token = getToken()
+    const res = await fetch(`${BASE}/diagnostic/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ sessionId, questionId, message, history, studentAnswer }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `HTTP ${res.status}`)
+    }
+    return res.body!
+  },
+
   chatStream: async (topicId: number, message: string): Promise<ReadableStream<Uint8Array>> => {
     const token = getToken()
     const res = await fetch(`${BASE}/student/chat/${topicId}`, {
@@ -146,11 +194,21 @@ export interface Question {
   difficulty?: number
 }
 
+export interface DiagnosticSession {
+  sessionId: string
+  questions: DiagnosticQuestion[]
+}
+
+export interface DiagnosticQuestion extends Question {
+  correctAnswer: unknown
+  solution?: string
+}
+
 export interface DiagnosticResult {
   sessionId: string
   percentage: number
-  topics: { id: number; title: string; known: boolean }[]
-  learningPlanId: string
+  topics: { id: number; grade: number; section: string; title: string; known: boolean }[]
+  learningPlanId?: string
 }
 
 export interface KnowledgeEntry {

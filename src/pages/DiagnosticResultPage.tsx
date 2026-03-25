@@ -1,12 +1,34 @@
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/Button'
-import { Trophy, TrendingUp, ArrowRight, Brain } from 'lucide-react'
+import { api } from '@/lib/api'
+import { Trophy, TrendingUp, ArrowRight, Brain, Beaker } from 'lucide-react'
 import type { DiagnosticResult } from '@/lib/api'
 
 export function DiagnosticResultPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const result = location.state?.result as DiagnosticResult | undefined
+  const { sessionId } = useParams<{ sessionId: string }>()
+
+  // Try router state first (immediate navigation), then fetch from API (page refresh)
+  const stateResult = location.state?.result as DiagnosticResult | undefined
+
+  const { data: fetchedResult, isLoading } = useQuery({
+    queryKey: ['diagnostic-result', sessionId],
+    queryFn: () => api.getDiagnosticResult(sessionId!),
+    enabled: !stateResult && !!sessionId,
+  })
+
+  const result = stateResult || fetchedResult
+
+  if (isLoading) {
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4 page-enter">
+        <Beaker size={40} className="text-amber-400 animate-pulse" />
+        <p className="text-ink-400">Загружаем результаты...</p>
+      </div>
+    )
+  }
 
   if (!result) {
     navigate('/')
@@ -16,6 +38,16 @@ export function DiagnosticResultPage() {
   const knownCount = result.topics.filter((t) => t.known).length
   const weakCount = result.topics.filter((t) => !t.known).length
   const percentage = Math.round(result.percentage)
+
+  // Group weak topics by section
+  const weakBySection = result.topics
+    .filter((t) => !t.known)
+    .reduce<Record<string, typeof result.topics>>((acc, topic) => {
+      const key = `${topic.grade} класс — ${topic.section}`
+      if (!acc[key]) acc[key] = []
+      acc[key].push(topic)
+      return acc
+    }, {})
 
   return (
     <div className="min-h-dvh flex flex-col px-6 py-10 page-enter">
@@ -68,18 +100,28 @@ export function DiagnosticResultPage() {
           </div>
         </div>
 
-        {/* Weak topics preview */}
+        {/* Weak topics grouped by section */}
         <div className="w-full text-left mb-6">
           <h3 className="text-ink-400 text-xs font-medium uppercase tracking-wider mb-3">Приоритетные темы</h3>
-          <div className="space-y-2">
-            {result.topics.filter((t) => !t.known).slice(0, 4).map((topic) => (
-              <div key={topic.id} className="flex items-center gap-3 bg-ink-800/40 rounded-xl px-4 py-3 border border-ink-700/30">
-                <div className="w-2 h-2 rounded-full bg-coral-400" />
-                <span className="text-ink-200 text-sm truncate">{topic.title}</span>
+          <div className="space-y-4">
+            {Object.entries(weakBySection).slice(0, 4).map(([section, topics]) => (
+              <div key={section}>
+                <p className="text-ink-500 text-xs font-medium mb-2">{section}</p>
+                <div className="space-y-2">
+                  {topics.slice(0, 3).map((topic) => (
+                    <div key={topic.id} className="flex items-center gap-3 bg-ink-800/40 rounded-xl px-4 py-3 border border-ink-700/30">
+                      <div className="w-2 h-2 rounded-full bg-coral-400" />
+                      <span className="text-ink-200 text-sm truncate">{topic.title}</span>
+                    </div>
+                  ))}
+                  {topics.length > 3 && (
+                    <p className="text-ink-500 text-xs pl-6">и ещё {topics.length - 3}...</p>
+                  )}
+                </div>
               </div>
             ))}
-            {weakCount > 4 && (
-              <p className="text-ink-500 text-xs pl-4">и ещё {weakCount - 4} тем...</p>
+            {Object.keys(weakBySection).length > 4 && (
+              <p className="text-ink-500 text-xs">и ещё {Object.keys(weakBySection).length - 4} разделов...</p>
             )}
           </div>
         </div>

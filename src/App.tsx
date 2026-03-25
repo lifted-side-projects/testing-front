@@ -52,7 +52,7 @@ export default function App() {
             <Route path="/diagnostic" element={
               <AuthRoute><DiagnosticPage /></AuthRoute>
             } />
-            <Route path="/diagnostic/result" element={
+            <Route path="/diagnostic/result/:sessionId" element={
               <AuthRoute><DiagnosticResultPage /></AuthRoute>
             } />
             <Route path="/" element={
