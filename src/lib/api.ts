@@ -109,6 +109,12 @@ export const api = {
   getWeakTopics: () =>
     request<WeakTopic[]>('/student/weak-topics'),
 
+  chatSuggestions: (topicId: number, messages: { role: string; content: string }[]) =>
+    request<{ suggestions: string[] }>(`/student/chat/${topicId}/suggestions`, {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    }).then(r => r.suggestions).catch(() => []),
+
   chatStream: async (topicId: number, message: string): Promise<ReadableStream<Uint8Array>> => {
     const token = getToken()
     const res = await fetch(`${BASE}/student/chat/${topicId}`, {

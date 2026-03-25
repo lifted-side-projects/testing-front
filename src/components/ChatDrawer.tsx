@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useChat } from '@/lib/useChat'
 import { MessageBubble } from '@/components/MessageBubble'
+import { ChatSuggestions } from '@/components/ChatSuggestions'
 import { X, Send, Loader2, MessageCircle } from 'lucide-react'
 
 interface ChatDrawerProps {
@@ -11,7 +12,7 @@ interface ChatDrawerProps {
 }
 
 export function ChatDrawer({ topicId, open, onClose }: ChatDrawerProps) {
-  const { messages, isStreaming, sendMessage } = useChat(topicId)
+  const { messages, isStreaming, sendMessage, suggestions, suggestionsLoading } = useChat(topicId)
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -35,6 +36,11 @@ export function ChatDrawer({ topicId, open, onClose }: ChatDrawerProps) {
     if (!input.trim() || isStreaming) return
     sendMessage(input)
     setInput('')
+  }
+
+  function handleSuggestion(text: string) {
+    if (isStreaming) return
+    sendMessage(text)
   }
 
   return (
@@ -91,6 +97,15 @@ export function ChatDrawer({ topicId, open, onClose }: ChatDrawerProps) {
             <MessageBubble key={i} message={msg} isLast={i === messages.length - 1 && msg.role === 'assistant'} isStreaming={isStreaming} />
           ))}
         </div>
+
+        {/* Suggestions */}
+        <ChatSuggestions
+          suggestions={suggestions}
+          isLoading={suggestionsLoading}
+          hasMessages={messages.length > 0}
+          isStreaming={isStreaming}
+          onSelect={handleSuggestion}
+        />
 
         {/* Input */}
         <form onSubmit={handleSubmit} className="shrink-0 px-4 pb-4 pt-2 border-t border-ink-800/50">

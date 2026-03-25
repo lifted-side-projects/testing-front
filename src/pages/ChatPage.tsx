@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useChat } from '@/lib/useChat'
 import { MessageBubble } from '@/components/MessageBubble'
+import { ChatSuggestions } from '@/components/ChatSuggestions'
 import { ArrowLeft, Send, Loader2, MessageCircle } from 'lucide-react'
 
 export function ChatPage() {
   const { topicId } = useParams<{ topicId: string }>()
   const navigate = useNavigate()
   const tid = Number(topicId)
-  const { messages, isStreaming, sendMessage } = useChat(tid)
+  const { messages, isStreaming, sendMessage, suggestions, suggestionsLoading } = useChat(tid)
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -30,6 +31,11 @@ export function ChatPage() {
     if (!input.trim() || isStreaming) return
     sendMessage(input)
     setInput('')
+  }
+
+  function handleSuggestion(text: string) {
+    if (isStreaming) return
+    sendMessage(text)
   }
 
   return (
@@ -70,6 +76,15 @@ export function ChatPage() {
           />
         ))}
       </div>
+
+      {/* Suggestions */}
+      <ChatSuggestions
+        suggestions={suggestions}
+        isLoading={suggestionsLoading}
+        hasMessages={messages.length > 0}
+        isStreaming={isStreaming}
+        onSelect={handleSuggestion}
+      />
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="shrink-0 px-4 pb-4 pt-2 border-t border-ink-800/50">
