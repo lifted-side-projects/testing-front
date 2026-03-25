@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/Button'
-import { ArrowLeft, Presentation, CheckCheck, BookOpen, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Presentation, CheckCheck, BookOpen, AlertCircle, MessageCircle } from 'lucide-react'
 
 export function LessonPage() {
   const { topicId } = useParams<{ topicId: string }>()
@@ -10,13 +10,16 @@ export function LessonPage() {
   const tid = Number(topicId)
 
   // Check if presentation exists for this topic
-  const { data: presentation, isLoading: presLoading } = useQuery({
+  const { data: presData, isLoading: presLoading } = useQuery({
     queryKey: ['presentation', tid],
     queryFn: () => api.getPresentation(tid),
     retry: false,
   })
 
-  const hasPresentation = !!presentation && presentation.status === 'done'
+  const hasPresentation = !!presData && presData.presentations.length > 0
+  const totalSlides = hasPresentation
+    ? presData.presentations.reduce((max, p) => Math.max(max, p.totalSlides), 0)
+    : 0
 
   return (
     <div className="min-h-dvh flex flex-col page-enter">
@@ -35,13 +38,13 @@ export function LessonPage() {
       {/* Content */}
       <div className="flex-1 px-5 py-6">
         {/* Topic info */}
-        {presentation && (
+        {presData && (
           <div className="mb-6">
             <h2 className="font-display text-xl font-bold text-ink-50 mb-1">
-              {presentation.topicTitle || `Тема ${topicId}`}
+              {presData.topicTitle || `Тема ${topicId}`}
             </h2>
-            {presentation.grade && (
-              <p className="text-ink-400 text-sm">{presentation.grade} класс</p>
+            {presData.grade && (
+              <p className="text-ink-400 text-sm">{presData.grade} класс</p>
             )}
           </div>
         )}
@@ -59,7 +62,7 @@ export function LessonPage() {
               </div>
               <div className="flex-1">
                 <p className="text-ink-100 text-sm font-semibold">Презентация</p>
-                <p className="text-ink-400 text-xs mt-0.5">{presentation.totalSlides} слайдов</p>
+                <p className="text-ink-400 text-xs mt-0.5">{totalSlides} слайдов</p>
               </div>
             </button>
           ) : (
@@ -77,14 +80,28 @@ export function LessonPage() {
           {/* Quiz */}
           <button
             onClick={() => navigate(`/quiz/${topicId}`)}
-            className="w-full flex items-center gap-4 bg-gradient-to-r from-violet-500/10 to-violet-500/5 border border-violet-500/20 rounded-2xl p-4 active:scale-[0.98] transition-transform text-left"
+            className="w-full flex items-center gap-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 active:scale-[0.98] transition-transform text-left"
           >
-            <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
-              <CheckCheck size={22} className="text-violet-400" />
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <CheckCheck size={22} className="text-emerald-400" />
             </div>
             <div className="flex-1">
               <p className="text-ink-100 text-sm font-semibold">Пройти тест</p>
               <p className="text-ink-400 text-xs mt-0.5">8 вопросов, AI-проверка</p>
+            </div>
+          </button>
+
+          {/* Chat with tutor */}
+          <button
+            onClick={() => navigate(`/chat/${topicId}`)}
+            className="w-full flex items-center gap-4 bg-gradient-to-r from-violet-500/10 to-violet-500/5 border border-violet-500/20 rounded-2xl p-4 active:scale-[0.98] transition-transform text-left"
+          >
+            <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
+              <MessageCircle size={22} className="text-violet-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-ink-100 text-sm font-semibold">Спросить репетитора</p>
+              <p className="text-ink-400 text-xs mt-0.5">AI-чат по теме урока</p>
             </div>
           </button>
         </div>

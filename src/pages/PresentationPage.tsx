@@ -1,32 +1,58 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { api, type PresentationVariant } from '@/lib/api'
+import { getUser } from '@/lib/auth'
 import { Button } from '@/components/Button'
+import { ChatDrawer } from '@/components/ChatDrawer'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Maximize2, Minimize2,
-  Loader2, AlertCircle, Presentation,
+  Loader2, AlertCircle, Presentation, MessageCircle,
 } from 'lucide-react'
+
+// Map user interest to preferred style slugs
+const INTEREST_STYLES: Record<string, string[]> = {
+  anime: ['manga', 'jujutsu', 'solo-leveling'],
+  videogames: ['rpg'],
+}
+
+function pickPresentation(presentations: PresentationVariant[]): PresentationVariant {
+  const interest = getUser()?.interest || localStorage.getItem('chemprep_interest')
+  const preferred = interest ? INTEREST_STYLES[interest] ?? [] : []
+
+  // Try to find a presentation matching user's interest styles
+  for (const slug of preferred) {
+    const match = presentations.find((p) => p.style === slug)
+    if (match) return match
+  }
+  // Fallback: return the first available
+  return presentations[0]
+}
 
 export function PresentationPage() {
   const { topicId } = useParams<{ topicId: string }>()
   const navigate = useNavigate()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef(0)
 
   const tid = Number(topicId)
 
   // Read-only: fetch existing presentation (no generation)
-  const { data: status, isLoading, isError } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['presentation', tid],
     queryFn: () => api.getPresentation(tid),
     retry: false,
   })
 
-  const isDone = status?.status === 'done' && status.slides.length > 0
+  const presentation = useMemo(
+    () => data?.presentations?.length ? pickPresentation(data.presentations) : null,
+    [data],
+  )
+  const isDone = !!presentation && presentation.slides.length > 0
 
   // Swipe
   function handleTouchStart(e: React.TouchEvent) {
@@ -41,10 +67,10 @@ export function PresentationPage() {
   }
 
   const nextSlide = useCallback(() => {
-    if (status?.slides) {
-      setCurrentSlide((i) => Math.min(status.slides.length - 1, i + 1))
+    if (presentation?.slides) {
+      setCurrentSlide((i) => Math.min(presentation.slides.length - 1, i + 1))
     }
-  }, [status])
+  }, [presentation])
 
   const prevSlide = useCallback(() => {
     setCurrentSlide((i) => Math.max(0, i - 1))
@@ -89,9 +115,9 @@ export function PresentationPage() {
     )
   }
 
-  const slide = status.slides[currentSlide]
-  const imageUrl = status.folderName
-    ? api.getSlideImage(status.folderName, slide.slideNumber)
+  const slide = presentation.slides[currentSlide]
+  const imageUrl = presentation.folderName
+    ? api.getSlideImage(presentation.folderName, slide.slideNumber)
     : ''
 
   return (
@@ -105,7 +131,7 @@ export function PresentationPage() {
             <ArrowLeft size={20} />
           </button>
           <span className="text-ink-400 text-sm font-mono">
-            {currentSlide + 1} / {status.slides.length}
+            {currentSlide + 1} / {presentation.slides.length}
           </span>
           <button onClick={() => setFullscreen(true)} className="text-ink-400 hover:text-ink-200">
             <Maximize2 size={18} />
@@ -135,7 +161,7 @@ export function PresentationPage() {
 
       <div className="shrink-0 px-4 py-4">
         <div className="flex items-center justify-center gap-1.5 mb-4">
-          {status.slides.map((_, i) => (
+          {presentation.slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentSlide(i)}
@@ -147,7 +173,7 @@ export function PresentationPage() {
           <Button variant="secondary" size="md" disabled={currentSlide === 0} onClick={prevSlide} className="flex-1 flex items-center justify-center gap-1">
             <ChevronLeft size={16} /> Назад
           </Button>
-          {currentSlide < status.slides.length - 1 ? (
+          {currentSlide < presentation.slides.length - 1 ? (
             <Button variant="primary" size="md" onClick={nextSlide} className="flex-1 flex items-center justify-center gap-1">
               Далее <ChevronRight size={16} />
             </Button>
@@ -161,8 +187,8 @@ export function PresentationPage() {
 
       <div className="px-4 pb-4 overflow-x-auto no-scrollbar">
         <div className="flex gap-2">
-          {status.slides.map((s, i) => {
-            const thumbUrl = status.folderName ? api.getSlideImage(status.folderName, s.slideNumber) : ''
+          {presentation.slides.map((s, i) => {
+            const thumbUrl = presentation.folderName ? api.getSlideImage(presentation.folderName, s.slideNumber) : ''
             return (
               <button
                 key={i}
@@ -175,6 +201,18 @@ export function PresentationPage() {
           })}
         </div>
       </div>
+
+      {/* Floating chat button */}
+      {!fullscreen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-violet-500 text-white shadow-lg shadow-violet-500/30 flex items-center justify-center active:scale-90 transition-transform"
+        >
+          <MessageCircle size={22} />
+        </button>
+      )}
+
+      <ChatDrawer topicId={tid} open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   )
 }

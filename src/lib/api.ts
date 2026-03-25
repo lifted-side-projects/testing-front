@@ -74,7 +74,7 @@ export const api = {
 
   // Tutor (read-only on student frontend — generation happens via admin)
   getPresentation: (topicId: number) =>
-    request<PresentationStatus>(`/student/presentation/${topicId}`),
+    request<PresentationResponse>(`/student/presentation/${topicId}`),
 
   getSlideImage: (folderName: string, slideNumber: number) =>
     `${BASE}/slide-image/${folderName}/${slideNumber}`,
@@ -108,6 +108,23 @@ export const api = {
 
   getWeakTopics: () =>
     request<WeakTopic[]>('/student/weak-topics'),
+
+  chatStream: async (topicId: number, message: string): Promise<ReadableStream<Uint8Array>> => {
+    const token = getToken()
+    const res = await fetch(`${BASE}/student/chat/${topicId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ message }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `HTTP ${res.status}`)
+    }
+    return res.body!
+  },
 }
 
 // Types
@@ -162,15 +179,26 @@ export interface LearningPlanItem {
   status: 'pending' | 'in_progress' | 'completed' | 'skipped'
 }
 
-export interface PresentationStatus {
-  jobId: string
-  status: 'pending' | 'planning' | 'generating' | 'done' | 'error'
-  topicId: number
-  style?: 'classic' | 'manga' | 'rpg'
+export interface PresentationSlide {
+  slideNumber: number
+  type: string
+  title: string
+  imagePath: string
+}
+
+export interface PresentationVariant {
+  presentationId: string
+  style: string
+  folderName: string
   totalSlides: number
-  completedSlides: number
-  slides: { slideNumber: number; type: string; title: string; imagePath: string }[]
-  folderName?: string
+  slides: PresentationSlide[]
+}
+
+export interface PresentationResponse {
+  topicId: number
+  topicTitle: string
+  grade: number
+  presentations: PresentationVariant[]
 }
 
 export interface QuizSession {

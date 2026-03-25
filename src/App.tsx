@@ -15,6 +15,7 @@ import { QuizPage } from './pages/QuizPage'
 import { QuizResultPage } from './pages/QuizResultPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { LearningPlanPage } from './pages/LearningPlanPage'
+import { ChatPage } from './pages/ChatPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,6 +69,9 @@ export default function App() {
             } />
             <Route path="/presentation/:topicId" element={
               <ProtectedRoute><PresentationPage /></ProtectedRoute>
+            } />
+            <Route path="/chat/:topicId" element={
+              <ProtectedRoute><ChatPage /></ProtectedRoute>
             } />
             <Route path="/quiz/:topicId" element={
               <ProtectedRoute><QuizPage /></ProtectedRoute>
