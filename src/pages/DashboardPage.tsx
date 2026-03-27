@@ -12,8 +12,9 @@ import { PageShell } from '@/components/PageShell'
 import { cn } from '@/lib/utils'
 import {
   Flame, Snowflake, Coins, ChevronRight, Play,
-  BookOpen, Target, Lock,
+  BookOpen, Target, Lock, ClipboardList,
 } from 'lucide-react'
+import { EmptyState } from '@/components/EmptyState'
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -28,12 +29,12 @@ export function DashboardPage() {
     setStreak(s)
   }, [])
 
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['knowledge-stats'],
     queryFn: api.getKnowledgeStats,
   })
 
-  const { data: plan } = useQuery({
+  const { data: plan, isLoading: planLoading } = useQuery({
     queryKey: ['learning-plan'],
     queryFn: api.getLearningPlan,
   })
@@ -45,6 +46,50 @@ export function DashboardPage() {
 
   // Find next lesson
   const nextTopic = plan?.items.find((item) => item.status === 'pending' || item.status === 'in_progress')
+
+  const isLoading = statsLoading && planLoading
+
+  if (isLoading) {
+    return (
+      <PageShell>
+        <div className="px-5 pt-6 page-enter">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <div className="skeleton h-4 w-16 mb-2" />
+              <div className="skeleton h-7 w-32" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="skeleton h-8 w-16 rounded-full" />
+              <div className="skeleton h-8 w-16 rounded-full" />
+            </div>
+          </div>
+          <div className="skeleton h-36 rounded-3xl mb-5" />
+          <div className="skeleton h-20 rounded-2xl mb-5" />
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="skeleton h-4 w-24" />
+              <div className="skeleton h-3 w-16" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3].map((i) => <div key={i} className="skeleton h-20 rounded-xl" />)}
+            </div>
+          </div>
+          <div className="mb-5">
+            <div className="skeleton h-4 w-36 mb-3" />
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <div key={i} className="skeleton h-16 rounded-xl" />)}
+            </div>
+          </div>
+          <div className="mb-8">
+            <div className="skeleton h-4 w-28 mb-3" />
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <div key={i} className="skeleton h-14 rounded-xl" />)}
+            </div>
+          </div>
+        </div>
+      </PageShell>
+    )
+  }
 
   return (
     <PageShell>
@@ -110,7 +155,7 @@ export function DashboardPage() {
               <span className="text-ink-300 text-sm">{streak} {streak === 1 ? 'день' : 'дней'} подряд</span>
             </div>
             <div className="flex items-center gap-2">
-              <Snowflake size={16} className="text-blue-400" />
+              <Snowflake size={16} className="text-violet-400" />
               <span className="text-ink-300 text-sm">{freezes} заморозки</span>
             </div>
           </div>
@@ -134,7 +179,17 @@ export function DashboardPage() {
         )}
 
         {/* Knowledge Stats */}
-        {stats && (
+        {statsLoading ? (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="skeleton h-4 w-24" />
+              <div className="skeleton h-3 w-16" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3].map((i) => <div key={i} className="skeleton h-20 rounded-xl" />)}
+            </div>
+          </div>
+        ) : stats ? (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-ink-300 text-sm font-semibold">Карта знаний</h3>
@@ -157,7 +212,7 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Daily Missions */}
         <div className="mb-5">
@@ -186,7 +241,24 @@ export function DashboardPage() {
         </div>
 
         {/* Learning Plan Preview */}
-        {plan && plan.items.length > 0 && (
+        {planLoading ? (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <div className="skeleton h-4 w-28" />
+              <div className="skeleton h-3 w-16" />
+            </div>
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <div key={i} className="skeleton h-14 rounded-xl" />)}
+            </div>
+          </div>
+        ) : plan && plan.items.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="План обучения пуст"
+            description="Пройди диагностический тест, чтобы получить персональный план"
+            className="mb-8 py-8"
+          />
+        ) : plan && plan.items.length > 0 ? (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-ink-300 text-sm font-semibold">План обучения</h3>
@@ -245,7 +317,7 @@ export function DashboardPage() {
               <span className="text-ink-400 text-xs font-mono">{Math.round(plan.progress * 100)}%</span>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </PageShell>
   )

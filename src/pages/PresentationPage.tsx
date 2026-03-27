@@ -34,6 +34,7 @@ export function PresentationPage() {
   const { topicId } = useParams<{ topicId: string }>()
   const navigate = useNavigate()
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [direction, setDirection] = useState<'left' | 'right'>('right')
   const [fullscreen, setFullscreen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -68,11 +69,13 @@ export function PresentationPage() {
 
   const nextSlide = useCallback(() => {
     if (presentation?.slides) {
+      setDirection('right')
       setCurrentSlide((i) => Math.min(presentation.slides.length - 1, i + 1))
     }
   }, [presentation])
 
   const prevSlide = useCallback(() => {
+    setDirection('left')
     setCurrentSlide((i) => Math.max(0, i - 1))
   }, [])
 
@@ -154,7 +157,12 @@ export function PresentationPage() {
         )}
         <div className="w-full max-w-[400px] aspect-video rounded-xl overflow-hidden bg-ink-900 shadow-2xl">
           {imageUrl && (
-            <img src={imageUrl} alt={slide.title} className="w-full h-full object-contain fade-in" key={currentSlide} />
+            <img
+              src={imageUrl}
+              alt={slide.title}
+              className={cn('w-full h-full object-contain', direction === 'right' ? 'slide-in-right' : 'slide-in-left')}
+              key={currentSlide}
+            />
           )}
         </div>
       </div>
@@ -192,7 +200,7 @@ export function PresentationPage() {
             return (
               <button
                 key={i}
-                onClick={() => setCurrentSlide(i)}
+                onClick={() => { setDirection(i > currentSlide ? 'right' : 'left'); setCurrentSlide(i) }}
                 className={cn('w-16 h-10 rounded-lg overflow-hidden border-2 shrink-0 transition-all', i === currentSlide ? 'border-amber-400 opacity-100' : 'border-transparent opacity-50')}
               >
                 {thumbUrl && <img src={thumbUrl} alt="" className="w-full h-full object-cover" />}

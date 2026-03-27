@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { api, type KnowledgeEntry } from '@/lib/api'
 import { PageShell } from '@/components/PageShell'
 import { cn } from '@/lib/utils'
-import { Search, BookOpen, CheckCircle2, Circle, ChevronRight, GitBranch } from 'lucide-react'
+import { Search, BookOpen, CheckCircle2, Circle, ChevronRight, GitBranch, SearchX } from 'lucide-react'
+import { EmptyState } from '@/components/EmptyState'
 
 const GRADE_FILTERS = [
   { label: 'Все', value: 0 },
@@ -228,9 +229,12 @@ export function KnowledgeMapPage() {
             })}
 
             {Object.keys(grouped).length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-ink-500">Ничего не найдено</p>
-              </div>
+              <EmptyState
+                icon={SearchX}
+                title="Ничего не найдено"
+                description="Попробуйте изменить фильтры или поисковый запрос"
+                className="py-12"
+              />
             )}
           </div>
         )}

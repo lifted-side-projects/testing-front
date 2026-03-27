@@ -86,9 +86,9 @@ export function ProfilePage() {
             <div className="font-display text-lg font-bold text-amber-300">{coins}</div>
             <div className="text-ink-500 text-[10px] uppercase">Монеты</div>
           </div>
-          <div className="bg-blue-400/10 border border-blue-400/15 rounded-xl p-3 text-center">
-            <Snowflake size={18} className="text-blue-400 mx-auto mb-1" />
-            <div className="font-display text-lg font-bold text-blue-300">{freezes}</div>
+          <div className="bg-violet-400/10 border border-violet-400/15 rounded-xl p-3 text-center">
+            <Snowflake size={18} className="text-violet-400 mx-auto mb-1" />
+            <div className="font-display text-lg font-bold text-violet-300">{freezes}</div>
             <div className="text-ink-500 text-[10px] uppercase">Заморозки</div>
           </div>
         </div>
@@ -177,8 +177,8 @@ export function ProfilePage() {
         )}
 
         {/* Buy freeze */}
-        <div className="bg-blue-400/5 border border-blue-400/15 rounded-2xl p-4 mb-6 flex items-center gap-4">
-          <Snowflake size={24} className="text-blue-400 shrink-0" />
+        <div className="bg-violet-400/5 border border-violet-400/15 rounded-2xl p-4 mb-6 flex items-center gap-4">
+          <Snowflake size={24} className="text-violet-400 shrink-0" />
           <div className="flex-1">
             <p className="text-ink-200 text-sm font-medium">Заморозка стрика</p>
             <p className="text-ink-500 text-xs">Защити свой прогресс при пропуске дня</p>

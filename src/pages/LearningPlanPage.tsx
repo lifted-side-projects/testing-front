@@ -7,6 +7,7 @@ import {
   CheckCircle2, Circle, ChevronRight,
   Play, Loader2, GraduationCap,
 } from 'lucide-react'
+import { EmptyState } from '@/components/EmptyState'
 
 export function LearningPlanPage() {
   const navigate = useNavigate()
@@ -29,10 +30,16 @@ export function LearningPlanPage() {
   if (!plan || !plan.items.length) {
     return (
       <PageShell>
-        <div className="flex flex-col items-center justify-center min-h-[60dvh] px-6 text-center">
-          <GraduationCap size={40} className="text-ink-600 mb-4" />
-          <p className="text-ink-400">План обучения пока не создан</p>
-          <p className="text-ink-600 text-sm mt-1">Пройди диагностический тест для создания плана</p>
+        <div className="min-h-[60dvh] flex items-center">
+          <EmptyState
+            icon={GraduationCap}
+            title="План обучения пока не создан"
+            description="Пройди диагностический тест для создания персонального плана обучения"
+            action={{
+              label: 'Пройти диагностику',
+              onClick: () => navigate('/diagnostic'),
+            }}
+          />
         </div>
       </PageShell>
     )

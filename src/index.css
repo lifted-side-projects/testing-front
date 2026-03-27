@@ -38,6 +38,13 @@
   --font-display: "Playfair Display", "Georgia", serif;
   --font-body: "DM Sans", "Helvetica Neue", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Animation tokens */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
 }
 
 @layer base {
@@ -94,7 +101,7 @@
   to { opacity: 1; transform: translateY(0); }
 }
 .page-enter {
-  animation: pageSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: pageSlideIn var(--duration-slow) var(--ease-out) forwards;
 }
 
 @keyframes fireGlow {
@@ -136,7 +143,7 @@
   to { opacity: 1; }
 }
 .fade-in {
-  animation: fadeIn 0.3s ease forwards;
+  animation: fadeIn var(--duration-normal) var(--ease-out) forwards;
 }
 
 /* Grain texture overlay */
@@ -153,6 +160,38 @@
 /* Swiper-like touch */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Slide transitions */
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInFromLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.slide-in-right {
+  animation: slideInFromRight var(--duration-normal) var(--ease-out) forwards;
+}
+.slide-in-left {
+  animation: slideInFromLeft var(--duration-normal) var(--ease-out) forwards;
+}
+
+/* Toast animations */
+@keyframes toastSlideDown {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastSlideUp {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-100%); }
+}
+.toast-enter {
+  animation: toastSlideDown var(--duration-normal) var(--ease-out) forwards;
+}
+.toast-exit {
+  animation: toastSlideUp var(--duration-normal) var(--ease-in) forwards;
+}
 
 /* Markdown inside chat bubbles */
 .prose-chat {

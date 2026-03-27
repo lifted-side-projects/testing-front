@@ -80,10 +80,10 @@ export function LessonPage() {
           {/* Quiz */}
           <button
             onClick={() => navigate(`/quiz/${topicId}`)}
-            className="w-full flex items-center gap-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 active:scale-[0.98] transition-transform text-left"
+            className="w-full flex items-center gap-4 bg-gradient-to-r from-sage-500/10 to-sage-500/5 border border-sage-500/20 rounded-2xl p-4 active:scale-[0.98] transition-transform text-left"
           >
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-              <CheckCheck size={22} className="text-emerald-400" />
+            <div className="w-12 h-12 rounded-xl bg-sage-500/20 flex items-center justify-center shrink-0">
+              <CheckCheck size={22} className="text-sage-400" />
             </div>
             <div className="flex-1">
               <p className="text-ink-100 text-sm font-semibold">Пройти тест</p>
