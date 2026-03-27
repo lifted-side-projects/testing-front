@@ -103,19 +103,3 @@ export function checkAndUpdateStreak(): number {
   return streak
 }
 
-// Daily missions
-export interface DailyMission {
-  id: string
-  title: string
-  description: string
-  target: number
-  icon: string
-}
-
-export function getDailyMissions(): DailyMission[] {
-  return [
-    { id: 'solve_tests', title: 'Решить тесты', description: 'Пройди 2 теста по любой теме', target: 2, icon: '📝' },
-    { id: 'review_topic', title: 'Повторить тему', description: 'Просмотри 1 презентацию', target: 1, icon: '📖' },
-    { id: 'perfect_score', title: 'Отличный результат', description: 'Набери 80%+ на тесте', target: 1, icon: '⭐' },
-  ]
-}

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
@@ -6,13 +7,15 @@ import {
   getCurrentRank, getNextRank, getProgressToNextRank, RANKS,
   getStreak, getCoins, getFreezesCount,
 } from '@/lib/gamification'
+import { getExamDate, setExamDate } from '@/lib/countdown'
 import { PageShell } from '@/components/PageShell'
 import { Button } from '@/components/Button'
 import { cn } from '@/lib/utils'
 import {
   Flame, Snowflake, Coins, LogOut,
-  TrendingUp, Award, Crown,
+  TrendingUp, Award, Crown, Calendar,
 } from 'lucide-react'
+import { ShareButton } from '@/components/ShareButton'
 
 export function ProfilePage() {
   const navigate = useNavigate()
@@ -20,6 +23,7 @@ export function ProfilePage() {
   const streak = getStreak()
   const coins = getCoins()
   const freezes = getFreezesCount()
+  const [examDate, setExamDateLocal] = useState(getExamDate())
 
   const { data: stats } = useQuery({
     queryKey: ['knowledge-stats'],
@@ -91,6 +95,22 @@ export function ProfilePage() {
             <div className="font-display text-lg font-bold text-violet-300">{freezes}</div>
             <div className="text-ink-500 text-[10px] uppercase">Заморозки</div>
           </div>
+        </div>
+
+        {/* Share */}
+        <div className="flex justify-center mb-6">
+          <ShareButton
+            filename={`chemprep-profile-${rank.id}`}
+            label="Поделиться профилем"
+            cardProps={{
+              variant: 'profile',
+              rankTitle: rank.titleRu,
+              rankIcon: rank.icon,
+              rankColor: rank.color,
+              streak,
+              masteredPercent,
+            }}
+          />
         </div>
 
         {/* Rank progression */}
@@ -191,6 +211,24 @@ export function ProfilePage() {
           >
             <Coins size={12} /> 50
           </Button>
+        </div>
+
+        {/* Exam date */}
+        <div className="bg-ink-800/40 border border-ink-700/30 rounded-2xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar size={16} className="text-amber-400" />
+            <h3 className="text-ink-200 text-sm font-semibold">Дата ЕНТ</h3>
+          </div>
+          <input
+            type="date"
+            value={examDate}
+            onChange={(e) => {
+              setExamDateLocal(e.target.value)
+              setExamDate(e.target.value)
+            }}
+            className="w-full bg-ink-800/60 border border-ink-700/50 rounded-xl px-4 py-2.5 text-sm text-ink-100 focus:outline-none focus:border-amber-400/30"
+          />
+          <p className="text-ink-500 text-xs mt-2">Обратный отсчёт будет на главной</p>
         </div>
 
         {/* Logout */}

@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/Button'
-import { ArrowLeft, Presentation, CheckCheck, BookOpen, AlertCircle, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Presentation, CheckCheck, BookOpen, AlertCircle, MessageCircle, Atom } from 'lucide-react'
 
 export function LessonPage() {
   const { topicId } = useParams<{ topicId: string }>()
@@ -102,6 +102,20 @@ export function LessonPage() {
             <div className="flex-1">
               <p className="text-ink-100 text-sm font-semibold">Спросить репетитора</p>
               <p className="text-ink-400 text-xs mt-0.5">AI-чат по теме урока</p>
+            </div>
+          </button>
+
+          {/* Periodic table */}
+          <button
+            onClick={() => navigate('/periodic-table')}
+            className="w-full flex items-center gap-4 bg-gradient-to-r from-coral-500/10 to-coral-500/5 border border-coral-500/20 rounded-2xl p-4 active:scale-[0.98] transition-transform text-left"
+          >
+            <div className="w-12 h-12 rounded-xl bg-coral-500/20 flex items-center justify-center shrink-0">
+              <Atom size={22} className="text-coral-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-ink-100 text-sm font-semibold">Таблица Менделеева</p>
+              <p className="text-ink-400 text-xs mt-0.5">Интерактивная таблица</p>
             </div>
           </button>
         </div>

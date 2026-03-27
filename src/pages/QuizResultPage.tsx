@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { cn } from '@/lib/utils'
 import {
   Trophy, XCircle, CheckCircle2, ArrowRight, RotateCcw,
-  MessageSquare, Coins,
+  MessageSquare, Coins, Brain,
 } from 'lucide-react'
 import type { QuizResult } from '@/lib/api'
+import { addCardsFromQuizResult } from '@/lib/srs'
+import { ShareButton } from '@/components/ShareButton'
 
 // Resolve letter label (e.g. "B") to option text using options array
 function resolveAnswer(
@@ -39,6 +42,14 @@ export function QuizResultPage() {
   const navigate = useNavigate()
   const result = location.state?.result as QuizResult | undefined
   const topicId = location.state?.topicId as number | undefined
+  const [srsAdded, setSrsAdded] = useState(0)
+
+  useEffect(() => {
+    if (result?.answers && topicId) {
+      const added = addCardsFromQuizResult(result.answers, topicId)
+      setSrsAdded(added)
+    }
+  }, [result, topicId])
 
   if (!result || !result.answers) {
     navigate('/')
@@ -88,6 +99,16 @@ export function QuizResultPage() {
           <Coins size={14} className="text-amber-400" />
           <span className="text-amber-300 text-sm font-semibold">+{passed ? 20 : 5} монет</span>
         </div>
+
+        {/* SRS cards added */}
+        {srsAdded > 0 && (
+          <div className="flex items-center justify-center gap-2 mt-3 bg-violet-400/10 border border-violet-400/20 rounded-full px-4 py-1.5 w-fit mx-auto">
+            <Brain size={14} className="text-violet-400" />
+            <span className="text-violet-300 text-sm font-medium">
+              {srsAdded} {srsAdded === 1 ? 'карточка' : srsAdded < 5 ? 'карточки' : 'карточек'} добавлено в повторение
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Answers review */}
@@ -155,27 +176,41 @@ export function QuizResultPage() {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 mt-6 pt-4 border-t border-ink-800/50">
-        {!passed && topicId && (
+      <div className="flex flex-col gap-3 mt-6 pt-4 border-t border-ink-800/50">
+        <div className="flex gap-3">
+          {!passed && topicId && (
+            <Button
+              variant="secondary"
+              size="md"
+              className="flex-1 flex items-center justify-center gap-2"
+              onClick={() => navigate(`/quiz/${topicId}`, { replace: true })}
+            >
+              <RotateCcw size={16} />
+              Ещё раз
+            </Button>
+          )}
           <Button
-            variant="secondary"
+            variant="primary"
             size="md"
             className="flex-1 flex items-center justify-center gap-2"
-            onClick={() => navigate(`/quiz/${topicId}`, { replace: true })}
+            onClick={() => navigate('/')}
           >
-            <RotateCcw size={16} />
-            Ещё раз
+            Продолжить
+            <ArrowRight size={16} />
           </Button>
-        )}
-        <Button
-          variant="primary"
-          size="md"
-          className="flex-1 flex items-center justify-center gap-2"
-          onClick={() => navigate('/')}
-        >
-          Продолжить
-          <ArrowRight size={16} />
-        </Button>
+        </div>
+        <div className="flex justify-center">
+          <ShareButton
+            filename={`chemprep-quiz-${percentage}`}
+            cardProps={{
+              variant: 'quiz',
+              percentage,
+              passed,
+              totalQuestions: result.totalQuestions,
+              correctCount: result.answers.filter((a) => a.isCorrect).length,
+            }}
+          />
+        </div>
       </div>
     </div>
   )

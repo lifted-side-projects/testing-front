@@ -245,6 +245,12 @@ export function DiagnosticPage() {
           {question.text}
         </div>
 
+        {question.questionType === 'multiple_choice' && phase === 'question' && (
+          <div className="flex items-center gap-2 mb-3 bg-violet-500/10 border border-violet-500/20 rounded-lg px-3 py-2">
+            <span className="text-violet-400 text-xs font-medium">Несколько вариантов</span>
+          </div>
+        )}
+
         {/* Single choice */}
         {question.questionType === 'single_choice' && question.options && (
           <div className="space-y-3">
