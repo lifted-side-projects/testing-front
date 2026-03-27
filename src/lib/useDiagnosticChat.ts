@@ -18,6 +18,8 @@ export function useDiagnosticChat(sessionId: string, questionId: number, student
 
   // Suggestions via React Query (same pattern as useChat)
   const [suggestionsKey, setSuggestionsKey] = useState(0)
+  const suggestionsKeyRef = useRef(suggestionsKey)
+  suggestionsKeyRef.current = suggestionsKey
   const messagesForSuggestions = useRef<ChatMessage[]>([])
   const queryClient = useQueryClient()
 
@@ -37,8 +39,8 @@ export function useDiagnosticChat(sessionId: string, questionId: number, student
       historyRef.current = [...historyRef.current, userMsg]
     }
 
-    // Clear suggestions while streaming
-    queryClient.setQueryData(['diagnostic-suggestions', sessionId, questionId, suggestionsKey], [])
+    // Clear suggestions while streaming (use ref for current key)
+    queryClient.setQueryData(['diagnostic-suggestions', sessionId, questionId, suggestionsKeyRef.current], [])
 
     setMessages([...historyRef.current, { role: 'assistant', content: '' }])
     setIsStreaming(true)
@@ -103,7 +105,7 @@ export function useDiagnosticChat(sessionId: string, questionId: number, student
     } finally {
       setIsStreaming(false)
     }
-  }, [sessionId, questionId, isStreaming, isDone, queryClient, suggestionsKey])
+  }, [sessionId, questionId, isStreaming, isDone, queryClient])
 
   const sendMessage = useCallback((text: string) => {
     if (!text.trim()) return

@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/Button'
 import { api } from '@/lib/api'
@@ -31,8 +31,7 @@ export function DiagnosticResultPage() {
   }
 
   if (!result) {
-    navigate('/')
-    return null
+    return <Navigate to="/" replace />
   }
 
   const knownCount = result.topics.filter((t) => t.known).length

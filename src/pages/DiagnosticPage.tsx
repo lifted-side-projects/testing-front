@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type DiagnosticQuestion } from '@/lib/api'
 import { setDiagnosticDone } from '@/lib/auth'
 import { DiagnosticChat } from '@/components/DiagnosticChat'
 import { Beaker, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Phase = 'loading' | 'question' | 'correct' | 'incorrect' | 'completing' | 'done'
+type Phase = 'loading' | 'question' | 'correct' | 'incorrect' | 'completing' | 'complete-error' | 'done'
 
 function checkAnswerLocally(
   question: DiagnosticQuestion,
@@ -23,10 +23,16 @@ function checkAnswerLocally(
       return { isCorrect, score: isCorrect ? 1 : 0 }
     }
     case 'multiple_choice': {
-      const correct = (correctAnswer as string[]).map(s => s.toLowerCase()).sort()
-      const student = (answer as string[]).map(s => s.toLowerCase()).sort()
-      const isCorrect = correct.length === student.length && correct.every((v, i) => v === student[i])
-      return { isCorrect, score: isCorrect ? 1 : 0 }
+      const correct = new Set((correctAnswer as string[]).map(s => s.toLowerCase()))
+      const student = new Set((answer as string[]).map(s => s.toLowerCase()))
+      let hits = 0
+      for (const s of student) {
+        if (correct.has(s)) hits++
+      }
+      const wrong = student.size - hits
+      const score = correct.size > 0 ? Math.max(0, hits - wrong) / correct.size : 0
+      const isCorrect = hits === correct.size && wrong === 0
+      return { isCorrect, score }
     }
     case 'matching': {
       const correct = correctAnswer as Record<string, string>
@@ -38,6 +44,10 @@ function checkAnswerLocally(
       }
       const score = totalPairs > 0 ? correctPairs / totalPairs : 0
       return { isCorrect: score === 1, score }
+    }
+    case 'open_answer': {
+      // Open answers are always sent to backend for AI evaluation; locally mark as "needs review"
+      return { isCorrect: false, score: 0 }
     }
     default:
       return { isCorrect: false, score: 0 }
@@ -52,8 +62,10 @@ export function DiagnosticPage() {
   const [questions, setQuestions] = useState<DiagnosticQuestion[]>([])
   const [currentIdx, setCurrentIdx] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<unknown>(null)
+  const [openAnswer, setOpenAnswer] = useState('')
   const [correctCount, setCorrectCount] = useState(0)
   const [incorrectCount, setIncorrectCount] = useState(0)
+  const failedAnswersRef = useRef<{ sessionId: string; questionId: number; answer: unknown; isCorrect: boolean; score: number }[]>([])
 
   // Start diagnostic session on mount
   const startMutation = useMutation({
@@ -65,11 +77,21 @@ export function DiagnosticPage() {
     },
   })
 
+  const queryClient = useQueryClient()
+
   const completeMutation = useMutation({
     mutationFn: (sid: string) => api.completeDiagnostic(sid),
     onSuccess: (result) => {
       setDiagnosticDone()
+      queryClient.invalidateQueries({ queryKey: ['knowledge-map'] })
+      queryClient.invalidateQueries({ queryKey: ['knowledge-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['learning-plan'] })
+      queryClient.invalidateQueries({ queryKey: ['current-lesson'] })
+      queryClient.invalidateQueries({ queryKey: ['weak-topics'] })
       navigate(`/diagnostic/result/${result.sessionId}`, { state: { result } })
+    },
+    onError: () => {
+      setPhase('complete-error')
     },
   })
 
@@ -81,9 +103,12 @@ export function DiagnosticPage() {
   const question = questions[currentIdx]
 
   const handleAnswer = useCallback(() => {
-    if (!question || selectedAnswer === null) return
+    if (!question) return
 
-    const result = checkAnswerLocally(question, selectedAnswer)
+    const actualAnswer = question.questionType === 'open_answer' ? openAnswer.trim() : selectedAnswer
+    if (actualAnswer === null || actualAnswer === '') return
+
+    const result = checkAnswerLocally(question, actualAnswer)
 
     if (result.isCorrect) {
       setCorrectCount(c => c + 1)
@@ -93,15 +118,24 @@ export function DiagnosticPage() {
       setPhase('incorrect')
     }
 
-    // Fire-and-forget: record answer on backend
-    api.recordDiagnosticAnswer({
+    const answerData = {
       sessionId,
       questionId: question.id,
-      answer: selectedAnswer,
+      answer: actualAnswer,
       isCorrect: result.isCorrect,
       score: result.score,
-    }).catch(() => {})
-  }, [question, selectedAnswer, sessionId])
+    }
+
+    // Flush any previously failed answers first, then record current
+    const toSend = [...failedAnswersRef.current, answerData]
+    failedAnswersRef.current = []
+
+    for (const data of toSend) {
+      api.recordDiagnosticAnswer(data).catch(() => {
+        failedAnswersRef.current.push(data)
+      })
+    }
+  }, [question, selectedAnswer, openAnswer, sessionId])
 
   const goToNextQuestion = useCallback(() => {
     if (currentIdx + 1 >= questions.length) {
@@ -110,6 +144,7 @@ export function DiagnosticPage() {
     } else {
       setCurrentIdx(i => i + 1)
       setSelectedAnswer(null)
+      setOpenAnswer('')
       setPhase('question')
     }
   }, [currentIdx, questions.length, sessionId, completeMutation])
@@ -147,6 +182,24 @@ export function DiagnosticPage() {
       <div className="min-h-dvh flex flex-col items-center justify-center gap-4 page-enter">
         <Beaker size={40} className="text-amber-400 animate-pulse" />
         <p className="text-ink-400">Формируем результаты...</p>
+      </div>
+    )
+  }
+
+  if (phase === 'complete-error') {
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4 px-6">
+        <p className="text-coral-400 text-sm">Не удалось завершить диагностику</p>
+        <p className="text-ink-500 text-xs">{completeMutation.error?.message}</p>
+        <button
+          onClick={() => {
+            setPhase('completing')
+            completeMutation.mutate(sessionId)
+          }}
+          className="text-amber-400 text-sm underline"
+        >
+          Попробовать снова
+        </button>
       </div>
     )
   }
@@ -345,6 +398,28 @@ export function DiagnosticPage() {
           </div>
         )}
 
+        {/* Open answer */}
+        {question.questionType === 'open_answer' && (
+          <div className="space-y-3">
+            <textarea
+              value={openAnswer}
+              onChange={e => { if (phase === 'question') setOpenAnswer(e.target.value) }}
+              disabled={phase !== 'question'}
+              placeholder="Напиши свой ответ..."
+              rows={4}
+              className={cn(
+                'w-full border rounded-xl px-4 py-3 text-sm leading-relaxed focus:outline-none transition-colors resize-none',
+                phase !== 'question'
+                  ? 'bg-ink-800/40 border-ink-700/30 text-ink-400'
+                  : 'bg-ink-800/60 border-ink-700/50 text-ink-100 focus:border-amber-400/40 placeholder-ink-500',
+              )}
+            />
+            {phase !== 'question' && (
+              <p className="text-ink-500 text-xs">Ответ отправлен на проверку</p>
+            )}
+          </div>
+        )}
+
         {/* Feedback for correct */}
         {phase === 'correct' && (
           <div className="mt-6 flex items-center gap-3 p-4 rounded-xl bg-sage-500/10 border border-sage-500/20 animate-in fade-in duration-300">
@@ -380,10 +455,14 @@ export function DiagnosticPage() {
         <div className="mt-6 pt-4 border-t border-ink-800/50">
           <button
             onClick={handleAnswer}
-            disabled={selectedAnswer === null || (Array.isArray(selectedAnswer) && selectedAnswer.length === 0)}
+            disabled={
+              question.questionType === 'open_answer'
+                ? !openAnswer.trim()
+                : selectedAnswer === null || (Array.isArray(selectedAnswer) && selectedAnswer.length === 0)
+            }
             className={cn(
               'w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-200',
-              selectedAnswer !== null && !(Array.isArray(selectedAnswer) && selectedAnswer.length === 0)
+              (question.questionType === 'open_answer' ? !!openAnswer.trim() : selectedAnswer !== null && !(Array.isArray(selectedAnswer) && selectedAnswer.length === 0))
                 ? 'bg-amber-400 text-ink-950 active:scale-[0.98]'
                 : 'bg-ink-800 text-ink-500 cursor-not-allowed',
             )}

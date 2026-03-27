@@ -156,6 +156,11 @@ export const api = {
       },
       body: JSON.stringify({ sessionId, questionId, message, history, studentAnswer }),
     })
+    if (res.status === 401) {
+      clearAuth()
+      window.location.href = '/login'
+      throw new Error('Unauthorized')
+    }
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
       throw new Error(body.error || `HTTP ${res.status}`)
@@ -173,6 +178,11 @@ export const api = {
       },
       body: JSON.stringify({ message }),
     })
+    if (res.status === 401) {
+      clearAuth()
+      window.location.href = '/login'
+      throw new Error('Unauthorized')
+    }
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
       throw new Error(body.error || `HTTP ${res.status}`)

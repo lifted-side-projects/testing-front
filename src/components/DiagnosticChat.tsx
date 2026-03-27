@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useDiagnosticChat } from '@/lib/useDiagnosticChat'
 import { MessageBubble } from '@/components/MessageBubble'
 import { ChatSuggestions } from '@/components/ChatSuggestions'
-import { Send, Loader2, Brain, ArrowRight } from 'lucide-react'
+import { Send, Loader2, Brain, ArrowRight, SkipForward } from 'lucide-react'
 import { Button } from '@/components/Button'
 
 interface DiagnosticChatProps {
@@ -15,6 +15,7 @@ interface DiagnosticChatProps {
 export function DiagnosticChat({ sessionId, questionId, studentAnswer, onComplete }: DiagnosticChatProps) {
   const { messages, isStreaming, isDone, sendMessage, startChat, suggestions, suggestionsLoading } = useDiagnosticChat(sessionId, questionId, studentAnswer)
   const [input, setInput] = useState('')
+  const [canSkip, setCanSkip] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const startedRef = useRef(false)
@@ -26,6 +27,12 @@ export function DiagnosticChat({ sessionId, questionId, studentAnswer, onComplet
       startChat()
     }
   }, [startChat])
+
+  // Allow skip after 15 seconds as a safety fallback
+  useEffect(() => {
+    const timer = setTimeout(() => setCanSkip(true), 15_000)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -97,6 +104,34 @@ export function DiagnosticChat({ sessionId, questionId, studentAnswer, onComplet
             Продолжить
             <ArrowRight size={16} />
           </Button>
+        </div>
+      ) : canSkip && !isStreaming ? (
+        <div className="px-4 pb-4 pt-2 flex flex-col gap-2">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Объясни свой ответ..."
+              className="flex-1 bg-ink-800 text-ink-100 placeholder-ink-500 rounded-xl px-3.5 py-2.5 text-[13px] outline-none focus:ring-1 focus:ring-violet-500/50"
+              disabled={isStreaming}
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isStreaming}
+              className="w-9 h-9 rounded-xl bg-violet-500 text-white flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all shrink-0"
+            >
+              <Send size={14} />
+            </button>
+          </form>
+          <button
+            onClick={onComplete}
+            className="flex items-center justify-center gap-1.5 text-ink-500 text-xs py-1.5 hover:text-ink-300 transition-colors"
+          >
+            <SkipForward size={12} />
+            Пропустить разбор
+          </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="px-4 pb-4 pt-2 border-t border-ink-800/40">
