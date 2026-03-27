@@ -13,7 +13,7 @@ import { Button } from '@/components/Button'
 import { cn } from '@/lib/utils'
 import {
   Flame, Snowflake, Coins, LogOut,
-  TrendingUp, Award, Crown, Calendar,
+  TrendingUp, Award, Crown, Calendar, Trophy, ChevronRight,
 } from 'lucide-react'
 import { ShareButton } from '@/components/ShareButton'
 
@@ -97,6 +97,16 @@ export function ProfilePage() {
           </div>
         </div>
 
+        {/* Leaderboard link */}
+        <button
+          onClick={() => navigate('/leaderboard')}
+          className="w-full flex items-center gap-3 bg-amber-400/5 border border-amber-400/15 rounded-xl px-4 py-3 mb-6 active:scale-[0.98] transition-transform"
+        >
+          <Trophy size={18} className="text-amber-400 shrink-0" />
+          <span className="text-ink-200 text-sm font-medium flex-1 text-left">Рейтинг учеников</span>
+          <ChevronRight size={16} className="text-ink-500" />
+        </button>
+
         {/* Share */}
         <div className="flex justify-center mb-6">
           <ShareButton
@@ -104,10 +114,12 @@ export function ProfilePage() {
             label="Поделиться профилем"
             cardProps={{
               variant: 'profile',
+              userName: user?.name || 'Ученик',
               rankTitle: rank.titleRu,
               rankIcon: rank.icon,
               rankColor: rank.color,
               streak,
+              coins,
               masteredPercent,
             }}
           />

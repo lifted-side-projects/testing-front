@@ -14,7 +14,7 @@ import { PageShell } from '@/components/PageShell'
 import { cn } from '@/lib/utils'
 import {
   Flame, Snowflake, Coins, ChevronRight, Play,
-  BookOpen, Target, Lock, ClipboardList, Calendar,
+  BookOpen, Target, Lock, ClipboardList, Calendar, Trophy,
 } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { SRSWidget } from '@/components/SRSWidget'
@@ -240,6 +240,15 @@ export function DashboardPage() {
                 <div className="text-ink-500 text-[10px] uppercase tracking-wider mt-0.5">Неизвестно</div>
               </div>
             </div>
+            {/* Leaderboard link */}
+            <button
+              onClick={() => navigate('/leaderboard')}
+              className="w-full mt-3 flex items-center gap-3 bg-amber-400/5 border border-amber-400/15 rounded-xl px-4 py-3 active:scale-[0.98] transition-transform"
+            >
+              <Trophy size={18} className="text-amber-400 shrink-0" />
+              <span className="text-ink-200 text-sm font-medium flex-1 text-left">Рейтинг учеников</span>
+              <ChevronRight size={16} className="text-ink-500" />
+            </button>
           </div>
         ) : null}
 

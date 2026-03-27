@@ -30,7 +30,9 @@ export function ShareButton({ cardProps, filename, label = 'Поделиться
 
   return (
     <>
-      <ShareCard ref={cardRef} {...cardProps} />
+      <div aria-hidden style={{ position: 'fixed', left: 0, top: 0, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
+        <ShareCard ref={cardRef} {...cardProps} />
+      </div>
       <Button
         variant="outline"
         size="sm"
