@@ -18,6 +18,9 @@ import { QuizResultPage } from './pages/QuizResultPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { LearningPlanPage } from './pages/LearningPlanPage'
 import { ChatPage } from './pages/ChatPage'
+import { ReviewPage } from './pages/ReviewPage'
+import { PeriodicTablePage } from './pages/PeriodicTablePage'
+import { LeaderboardPage } from './pages/LeaderboardPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,7 +65,10 @@ export default function App() {
                 <Route path="/quiz/:topicId" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
                 <Route path="/quiz/:sessionId/result" element={<ProtectedRoute><QuizResultPage /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                <Route path="/review" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
+                <Route path="/periodic-table" element={<ProtectedRoute><PeriodicTablePage /></ProtectedRoute>} />
                 <Route path="/plan" element={<ProtectedRoute><LearningPlanPage /></ProtectedRoute>} />
+                <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
           </BrowserRouter>

@@ -6,6 +6,7 @@ import { Button } from '@/components/Button'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, ChevronLeft, ChevronRight, Send, Loader2, Clock, ClipboardList } from 'lucide-react'
 import { addCoins } from '@/lib/gamification'
+import { incrementMission } from '@/lib/missions'
 
 export function QuizPage() {
   const { topicId } = useParams<{ topicId: string }>()
@@ -29,6 +30,11 @@ export function QuizPage() {
       api.submitQuiz(data.sessionId, data.answers),
     onSuccess: (result) => {
       addCoins(result.passed ? 20 : 5)
+      incrementMission('solve_tests')
+      const percentage = result.score <= 1 ? result.score * 100 : result.score
+      if (percentage >= 80) {
+        incrementMission('perfect_score')
+      }
       navigate(`/quiz/${session!.sessionId}/result`, { state: { result, topicId: tid } })
     },
   })

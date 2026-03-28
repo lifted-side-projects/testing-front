@@ -5,16 +5,19 @@ import { api } from '@/lib/api'
 import { getUser } from '@/lib/auth'
 import {
   getCurrentRank, getNextRank, getProgressToNextRank,
-  getStreak, checkAndUpdateStreak, getCoins, getDailyMissions,
+  getStreak, checkAndUpdateStreak, getCoins,
   getFreezesCount,
 } from '@/lib/gamification'
+import { getCountdown } from '@/lib/countdown'
+import { getOrInitMissions, claimMissionReward, type MissionState } from '@/lib/missions'
 import { PageShell } from '@/components/PageShell'
 import { cn } from '@/lib/utils'
 import {
   Flame, Snowflake, Coins, ChevronRight, Play,
-  BookOpen, Target, Lock, ClipboardList,
+  BookOpen, Target, Lock, ClipboardList, Calendar, Trophy,
 } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
+import { SRSWidget } from '@/components/SRSWidget'
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -22,11 +25,13 @@ export function DashboardPage() {
   const [streak, setStreak] = useState(getStreak())
   const [coins] = useState(getCoins())
   const freezes = getFreezesCount()
-  const missions = getDailyMissions()
+  const countdown = getCountdown()
+  const [missions, setMissions] = useState<MissionState[]>(() => getOrInitMissions())
 
   useEffect(() => {
     const s = checkAndUpdateStreak()
     setStreak(s)
+    setMissions(getOrInitMissions())
   }, [])
 
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -102,16 +107,37 @@ export function DashboardPage() {
               {user?.name || 'Ученик'}
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Countdown */}
+            <div className={cn(
+              'flex items-center gap-1.5 rounded-full px-3 py-1.5 border',
+              countdown.urgency === 'safe' && 'bg-sage-500/10 border-sage-500/20',
+              countdown.urgency === 'warning' && 'bg-amber-400/10 border-amber-400/20',
+              countdown.urgency === 'critical' && 'bg-coral-500/10 border-coral-500/20',
+            )}>
+              <Calendar size={13} className={cn(
+                countdown.urgency === 'safe' && 'text-sage-400',
+                countdown.urgency === 'warning' && 'text-amber-400',
+                countdown.urgency === 'critical' && 'text-coral-400',
+              )} />
+              <span className={cn(
+                'text-xs font-semibold font-mono',
+                countdown.urgency === 'safe' && 'text-sage-300',
+                countdown.urgency === 'warning' && 'text-amber-300',
+                countdown.urgency === 'critical' && 'text-coral-300',
+              )}>
+                {countdown.isPast ? 'ENT!' : `${countdown.days}д`}
+              </span>
+            </div>
             {/* Coins */}
             <div className="flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/20 rounded-full px-3 py-1.5">
               <Coins size={14} className="text-amber-400" />
-              <span className="text-amber-300 text-sm font-semibold font-mono">{coins}</span>
+              <span className="text-amber-300 text-xs font-semibold font-mono">{coins}</span>
             </div>
             {/* Streak */}
             <div className="flex items-center gap-1.5 bg-coral-500/10 border border-coral-500/20 rounded-full px-3 py-1.5">
               <Flame size={14} className="text-coral-400 fire-glow" />
-              <span className="text-coral-300 text-sm font-semibold font-mono">{streak}</span>
+              <span className="text-coral-300 text-xs font-semibold font-mono">{streak}</span>
             </div>
           </div>
         </div>
@@ -178,6 +204,9 @@ export function DashboardPage() {
           </button>
         )}
 
+        {/* SRS Review Widget */}
+        <SRSWidget />
+
         {/* Knowledge Stats */}
         {statsLoading ? (
           <div className="mb-5">
@@ -211,6 +240,15 @@ export function DashboardPage() {
                 <div className="text-ink-500 text-[10px] uppercase tracking-wider mt-0.5">Неизвестно</div>
               </div>
             </div>
+            {/* Leaderboard link */}
+            <button
+              onClick={() => navigate('/leaderboard')}
+              className="w-full mt-3 flex items-center gap-3 bg-amber-400/5 border border-amber-400/15 rounded-xl px-4 py-3 active:scale-[0.98] transition-transform"
+            >
+              <Trophy size={18} className="text-amber-400 shrink-0" />
+              <span className="text-ink-200 text-sm font-medium flex-1 text-left">Рейтинг учеников</span>
+              <ChevronRight size={16} className="text-ink-500" />
+            </button>
           </div>
         ) : null}
 
@@ -224,17 +262,52 @@ export function DashboardPage() {
             {missions.map((mission) => (
               <div
                 key={mission.id}
-                className="flex items-center gap-3 bg-ink-800/40 border border-ink-700/30 rounded-xl px-4 py-3"
+                className={cn(
+                  'flex items-center gap-3 rounded-xl px-4 py-3 border',
+                  mission.completed
+                    ? 'bg-sage-500/5 border-sage-500/15'
+                    : 'bg-ink-800/40 border-ink-700/30'
+                )}
               >
                 <span className="text-xl">{mission.icon}</span>
-                <div className="flex-1">
-                  <p className="text-ink-200 text-sm font-medium">{mission.title}</p>
-                  <p className="text-ink-500 text-xs">{mission.description}</p>
+                <div className="flex-1 min-w-0">
+                  <p className={cn('text-sm font-medium', mission.completed ? 'text-sage-300' : 'text-ink-200')}>
+                    {mission.title}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex-1 h-1.5 bg-ink-700/50 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all',
+                          mission.completed ? 'bg-sage-500' : 'bg-violet-400'
+                        )}
+                        style={{ width: `${Math.min(100, (mission.current / mission.target) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-ink-500 text-[10px] font-mono shrink-0">
+                      {mission.current}/{mission.target}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Coins size={12} className="text-amber-400" />
-                  <span className="text-amber-300 text-xs font-mono">+10</span>
-                </div>
+                {mission.completed && !mission.rewardClaimed ? (
+                  <button
+                    onClick={() => {
+                      claimMissionReward(mission.id)
+                      setMissions(getOrInitMissions())
+                    }}
+                    className="flex items-center gap-1 bg-amber-400/15 border border-amber-400/30 rounded-full px-2.5 py-1 shrink-0"
+                  >
+                    <Coins size={12} className="text-amber-400" />
+                    <span className="text-amber-300 text-xs font-semibold">+{mission.reward}</span>
+                  </button>
+                ) : mission.rewardClaimed ? (
+                  <span className="text-sage-400 text-xs font-medium shrink-0">✓</span>
+                ) : (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Coins size={12} className="text-ink-600" />
+                    <span className="text-ink-500 text-xs font-mono">+{mission.reward}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
