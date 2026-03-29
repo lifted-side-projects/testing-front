@@ -5,13 +5,15 @@ import { getUser } from '@/lib/auth'
 import {
   getCurrentRank, getNextRank, getProgressToNextRank,
 } from '@/lib/gamification'
+import { getCountdown } from '@/lib/countdown'
 import { PageShell } from '@/components/PageShell'
 import { cn } from '@/lib/utils'
 import {
   Flame, Snowflake, Coins, ChevronRight, Play,
-  BookOpen, Target, Lock, ClipboardList, CheckCircle2, RotateCcw,
+  BookOpen, Target, Lock, ClipboardList, CheckCircle2, RotateCcw, Calendar, Trophy,
 } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
+import { SRSWidget } from '@/components/SRSWidget'
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -109,16 +111,37 @@ export function DashboardPage() {
               {user?.name || 'Ученик'}
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Countdown */}
+            <div className={cn(
+              'flex items-center gap-1.5 rounded-full px-3 py-1.5 border',
+              countdown.urgency === 'safe' && 'bg-sage-500/10 border-sage-500/20',
+              countdown.urgency === 'warning' && 'bg-amber-400/10 border-amber-400/20',
+              countdown.urgency === 'critical' && 'bg-coral-500/10 border-coral-500/20',
+            )}>
+              <Calendar size={13} className={cn(
+                countdown.urgency === 'safe' && 'text-sage-400',
+                countdown.urgency === 'warning' && 'text-amber-400',
+                countdown.urgency === 'critical' && 'text-coral-400',
+              )} />
+              <span className={cn(
+                'text-xs font-semibold font-mono',
+                countdown.urgency === 'safe' && 'text-sage-300',
+                countdown.urgency === 'warning' && 'text-amber-300',
+                countdown.urgency === 'critical' && 'text-coral-300',
+              )}>
+                {countdown.isPast ? 'ENT!' : `${countdown.days}д`}
+              </span>
+            </div>
             {/* Coins */}
             <div className="flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/20 rounded-full px-3 py-1.5">
               <Coins size={14} className="text-amber-400" />
-              <span className="text-amber-300 text-sm font-semibold font-mono">{coins}</span>
+              <span className="text-amber-300 text-xs font-semibold font-mono">{coins}</span>
             </div>
             {/* Streak */}
             <div className="flex items-center gap-1.5 bg-coral-500/10 border border-coral-500/20 rounded-full px-3 py-1.5">
               <Flame size={14} className="text-coral-400 fire-glow" />
-              <span className="text-coral-300 text-sm font-semibold font-mono">{streak}</span>
+              <span className="text-coral-300 text-xs font-semibold font-mono">{streak}</span>
             </div>
           </div>
         </div>
@@ -185,6 +208,9 @@ export function DashboardPage() {
           </button>
         )}
 
+        {/* SRS Review Widget */}
+        <SRSWidget />
+
         {/* Knowledge Stats */}
         {statsLoading ? (
           <div className="mb-5">
@@ -218,6 +244,15 @@ export function DashboardPage() {
                 <div className="text-ink-500 text-[10px] uppercase tracking-wider mt-0.5">Неизвестно</div>
               </div>
             </div>
+            {/* Leaderboard link */}
+            <button
+              onClick={() => navigate('/leaderboard')}
+              className="w-full mt-3 flex items-center gap-3 bg-amber-400/5 border border-amber-400/15 rounded-xl px-4 py-3 active:scale-[0.98] transition-transform"
+            >
+              <Trophy size={18} className="text-amber-400 shrink-0" />
+              <span className="text-ink-200 text-sm font-medium flex-1 text-left">Рейтинг учеников</span>
+              <ChevronRight size={16} className="text-ink-500" />
+            </button>
           </div>
         ) : null}
 

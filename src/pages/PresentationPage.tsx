@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo, type MutableRefObject } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, type PresentationVariant, type SlideContext } from '@/lib/api'
@@ -10,6 +10,7 @@ import {
   ArrowLeft, ChevronLeft, ChevronRight, Maximize2, Minimize2,
   Loader2, AlertCircle, Presentation, MessageCircle,
 } from 'lucide-react'
+import { incrementMission } from '@/lib/missions'
 
 // Map user interest to preferred style slugs
 const INTEREST_STYLES: Record<string, string[]> = {
@@ -39,6 +40,7 @@ export function PresentationPage() {
   const [chatOpen, setChatOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef(0)
+  const missionFiredRef = useRef(false) as MutableRefObject<boolean>
 
   const tid = Number(topicId)
 
@@ -78,6 +80,14 @@ export function PresentationPage() {
     setDirection('left')
     setCurrentSlide((i) => Math.max(0, i - 1))
   }, [])
+
+  // Mission: review topic when reaching last slide
+  useEffect(() => {
+    if (presentation && currentSlide === presentation.slides.length - 1 && !missionFiredRef.current) {
+      missionFiredRef.current = true
+      incrementMission('review_topic')
+    }
+  }, [currentSlide, presentation])
 
   // Keyboard
   useEffect(() => {
