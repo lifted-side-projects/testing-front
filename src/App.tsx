@@ -18,6 +18,7 @@ import { QuizResultPage } from './pages/QuizResultPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { LearningPlanPage } from './pages/LearningPlanPage'
 import { ChatPage } from './pages/ChatPage'
+import { FlashcardPage } from './pages/FlashcardPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +62,7 @@ export default function App() {
                 <Route path="/chat/:topicId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                 <Route path="/quiz/:topicId" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
                 <Route path="/quiz/:sessionId/result" element={<ProtectedRoute><QuizResultPage /></ProtectedRoute>} />
+                <Route path="/flashcards/:topicId" element={<ProtectedRoute><FlashcardPage /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                 <Route path="/plan" element={<ProtectedRoute><LearningPlanPage /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />

@@ -109,10 +109,79 @@ export const api = {
   getWeakTopics: () =>
     request<WeakTopic[]>('/student/weak-topics'),
 
-  chatSuggestions: (topicId: number, messages: { role: string; content: string }[]) =>
+  // Missions & Gamification
+  getDailyMissions: () =>
+    request<Mission[]>('/student/missions'),
+
+  completeMission: (id: number) =>
+    request<{ reward: number }>(`/student/missions/${id}/complete`, { method: 'POST' }),
+
+  getGamification: () =>
+    request<Gamification>('/student/gamification'),
+
+  checkin: () =>
+    request<Gamification>('/student/gamification/checkin', { method: 'POST' }),
+
+  // Flashcards
+  getFlashcardDeck: (topicId: number) =>
+    request<FlashcardDeck>(`/student/flashcards/${topicId}`),
+
+  getFlashcardsForReview: (topicId: number) =>
+    request<{ cards: Flashcard[] }>(`/student/flashcards/${topicId}/review`).then(r => r.cards),
+
+  recordFlashcardReview: (flashcardId: number, quality: number) =>
+    request<{ nextReviewAt: string; intervalDays: number }>('/student/flashcards/review', {
+      method: 'POST',
+      body: JSON.stringify({ flashcardId, quality }),
+    }),
+
+  getFlashcardStats: (topicId: number) =>
+    request<FlashcardStats>(`/student/flashcards/${topicId}/stats`),
+
+  // Spaced Repetition
+  getReviewsDue: () =>
+    request<ReviewDueTopic[]>('/student/reviews/due'),
+
+  getReviewSchedule: () =>
+    request<ReviewDueTopic[]>('/student/reviews/schedule'),
+
+  // Quiz error chat
+  quizErrorChatStream: async (
+    sessionId: string,
+    message: string,
+    questionId?: number,
+  ): Promise<ReadableStream<Uint8Array>> => {
+    const token = getToken()
+    const res = await fetch(`${BASE}/student/quiz/${sessionId}/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ message, questionId }),
+    })
+    if (res.status === 401) {
+      clearAuth()
+      window.location.href = '/login'
+      throw new Error('Unauthorized')
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `HTTP ${res.status}`)
+    }
+    return res.body!
+  },
+
+  quizErrorChatSuggestions: (sessionId: string, messages: { role: string; content: string }[], questionId?: number) =>
+    request<{ suggestions: string[] }>(`/student/quiz/${sessionId}/chat/suggestions`, {
+      method: 'POST',
+      body: JSON.stringify({ messages, questionId }),
+    }).then(r => r.suggestions).catch(() => []),
+
+  chatSuggestions: (topicId: number, messages: { role: string; content: string }[], slideContext?: SlideContext) =>
     request<{ suggestions: string[] }>(`/student/chat/${topicId}/suggestions`, {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, slideContext }),
     }).then(r => r.suggestions).catch(() => []),
 
   diagnosticChatSuggestions: (sessionId: string, questionId: number, studentAnswer: unknown, messages: { role: string; content: string }[]) =>
@@ -168,7 +237,10 @@ export const api = {
     return res.body!
   },
 
-  chatStream: async (topicId: number, message: string): Promise<ReadableStream<Uint8Array>> => {
+  getSlideHint: (topicId: number, slideNumber: number) =>
+    request<{ hint: string | null; type: string }>(`/student/presentation/${topicId}/slide-hints/${slideNumber}`),
+
+  chatStream: async (topicId: number, message: string, slideContext?: SlideContext): Promise<ReadableStream<Uint8Array>> => {
     const token = getToken()
     const res = await fetch(`${BASE}/student/chat/${topicId}`, {
       method: 'POST',
@@ -176,7 +248,7 @@ export const api = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, slideContext }),
     })
     if (res.status === 401) {
       clearAuth()
@@ -258,6 +330,14 @@ export interface PresentationSlide {
   type: string
   title: string
   imagePath: string
+  bulletPoints?: string[]
+  slideTitle?: string
+}
+
+export interface SlideContext {
+  slideNumber: number
+  slideTitle: string
+  slideBulletPoints: string[]
 }
 
 export interface PresentationVariant {
@@ -324,4 +404,63 @@ export interface WeakTopic {
   grade: number
   score: number
   sections: { title: string; relevance: number }[]
+}
+
+export interface Mission {
+  id: number
+  userId: string
+  date: string
+  missionType: string
+  title: string
+  description: string
+  icon: string
+  targetTopicId: number | null
+  targetValue: number
+  currentValue: number
+  reward: number
+  completed: boolean
+  completedAt: string | null
+}
+
+export interface Gamification {
+  userId: string
+  coins: number
+  streak: number
+  freezes: number
+  lastActiveDate: string | null
+}
+
+export interface Flashcard {
+  id: number
+  deckId: number
+  front: string
+  back: string
+  cardType: string
+  orderIndex: number
+}
+
+export interface FlashcardDeck {
+  id: number
+  topicId: number
+  cardCount: number
+  status: string
+  cards: Flashcard[]
+}
+
+export interface FlashcardStats {
+  total: number
+  reviewed: number
+  due: number
+  mastered: number
+}
+
+export interface ReviewDueTopic {
+  topicId: number
+  topicTitle: string
+  grade: number
+  section: string
+  score: number
+  lastReviewedAt: string | null
+  nextReviewAt: string | null
+  intervalDays: number
 }

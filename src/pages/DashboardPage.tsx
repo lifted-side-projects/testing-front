@@ -1,33 +1,21 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { getUser } from '@/lib/auth'
 import {
   getCurrentRank, getNextRank, getProgressToNextRank,
-  getStreak, checkAndUpdateStreak, getCoins, getDailyMissions,
-  getFreezesCount,
 } from '@/lib/gamification'
 import { PageShell } from '@/components/PageShell'
 import { cn } from '@/lib/utils'
 import {
   Flame, Snowflake, Coins, ChevronRight, Play,
-  BookOpen, Target, Lock, ClipboardList,
+  BookOpen, Target, Lock, ClipboardList, CheckCircle2, RotateCcw,
 } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const user = getUser()
-  const [streak, setStreak] = useState(getStreak())
-  const [coins] = useState(getCoins())
-  const freezes = getFreezesCount()
-  const missions = getDailyMissions()
-
-  useEffect(() => {
-    const s = checkAndUpdateStreak()
-    setStreak(s)
-  }, [])
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['knowledge-stats'],
@@ -38,6 +26,25 @@ export function DashboardPage() {
     queryKey: ['learning-plan'],
     queryFn: api.getLearningPlan,
   })
+
+  const { data: gamification } = useQuery({
+    queryKey: ['gamification'],
+    queryFn: () => api.checkin(),
+  })
+
+  const { data: missions } = useQuery({
+    queryKey: ['daily-missions'],
+    queryFn: api.getDailyMissions,
+  })
+
+  const { data: reviewsDue } = useQuery({
+    queryKey: ['reviews-due'],
+    queryFn: api.getReviewsDue,
+  })
+
+  const coins = gamification?.coins ?? 0
+  const streak = gamification?.streak ?? 0
+  const freezes = gamification?.freezes ?? 0
 
   const masteredPercent = stats ? Math.round((stats.mastered / stats.total) * 100) : 0
   const rank = getCurrentRank(masteredPercent)
@@ -214,6 +221,35 @@ export function DashboardPage() {
           </div>
         ) : null}
 
+        {/* Due for Review */}
+        {reviewsDue && reviewsDue.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <RotateCcw size={16} className="text-amber-400" />
+              <h3 className="text-ink-300 text-sm font-semibold">Пора повторить</h3>
+              <span className="text-amber-400 text-xs font-mono ml-auto">{reviewsDue.length}</span>
+            </div>
+            <div className="space-y-2">
+              {reviewsDue.slice(0, 3).map((topic) => (
+                <button
+                  key={topic.topicId}
+                  onClick={() => navigate(`/quiz/${topic.topicId}`)}
+                  className="w-full flex items-center gap-3 bg-amber-400/5 border border-amber-400/15 rounded-xl px-4 py-3 text-left active:scale-[0.98] transition-transform"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-amber-400/15 flex items-center justify-center shrink-0">
+                    <RotateCcw size={14} className="text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-ink-200 text-sm truncate">{topic.topicTitle}</p>
+                    <p className="text-ink-500 text-xs">{topic.grade} класс</p>
+                  </div>
+                  <ChevronRight size={16} className="text-ink-600 shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Daily Missions */}
         <div className="mb-5">
           <div className="flex items-center gap-2 mb-3">
@@ -221,21 +257,36 @@ export function DashboardPage() {
             <h3 className="text-ink-300 text-sm font-semibold">Ежедневные задания</h3>
           </div>
           <div className="space-y-2">
-            {missions.map((mission) => (
-              <div
+            {missions?.map((mission) => (
+              <button
                 key={mission.id}
-                className="flex items-center gap-3 bg-ink-800/40 border border-ink-700/30 rounded-xl px-4 py-3"
+                onClick={() => mission.targetTopicId && !mission.completed ? navigate(`/lesson/${mission.targetTopicId}`) : null}
+                className={cn(
+                  'w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all',
+                  mission.completed
+                    ? 'bg-sage-500/5 border border-sage-500/15'
+                    : 'bg-ink-800/40 border border-ink-700/30 active:scale-[0.98]'
+                )}
               >
-                <span className="text-xl">{mission.icon}</span>
-                <div className="flex-1">
-                  <p className="text-ink-200 text-sm font-medium">{mission.title}</p>
-                  <p className="text-ink-500 text-xs">{mission.description}</p>
+                {mission.completed ? (
+                  <CheckCircle2 size={20} className="text-sage-400 shrink-0" />
+                ) : (
+                  <span className="text-xl shrink-0">{mission.icon}</span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className={cn(
+                    'text-sm font-medium truncate',
+                    mission.completed ? 'text-sage-300 line-through' : 'text-ink-200'
+                  )}>
+                    {mission.title}
+                  </p>
+                  <p className="text-ink-500 text-xs truncate">{mission.description}</p>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <Coins size={12} className="text-amber-400" />
-                  <span className="text-amber-300 text-xs font-mono">+10</span>
+                  <span className="text-amber-300 text-xs font-mono">+{mission.reward}</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

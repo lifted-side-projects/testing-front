@@ -146,6 +146,12 @@
   animation: fadeIn var(--duration-normal) var(--ease-out) forwards;
 }
 
+/* 3D card flip for flashcards */
+.perspective-1000 { perspective: 1000px; }
+.preserve-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+.rotate-y-180 { transform: rotateY(180deg); }
+
 /* Grain texture overlay */
 .grain::after {
   content: "";

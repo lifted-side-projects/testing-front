@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api, type PresentationVariant } from '@/lib/api'
+import { api, type PresentationVariant, type SlideContext } from '@/lib/api'
 import { getUser } from '@/lib/auth'
 import { Button } from '@/components/Button'
 import { ChatDrawer } from '@/components/ChatDrawer'
@@ -123,6 +123,20 @@ export function PresentationPage() {
     ? api.getSlideImage(presentation.folderName, slide.slideNumber)
     : ''
 
+  const slideContext: SlideContext | undefined = slide ? {
+    slideNumber: slide.slideNumber,
+    slideTitle: slide.slideTitle || slide.title,
+    slideBulletPoints: (slide.bulletPoints as string[]) || [],
+  } : undefined
+
+  // Slide hint
+  const { data: hintData } = useQuery({
+    queryKey: ['slide-hint', tid, slide?.slideNumber],
+    queryFn: () => api.getSlideHint(tid, slide.slideNumber),
+    staleTime: Infinity,
+    enabled: !!slide && currentSlide > 0, // don't show hint for first slide
+  })
+
   return (
     <div
       ref={containerRef}
@@ -210,17 +224,27 @@ export function PresentationPage() {
         </div>
       </div>
 
-      {/* Floating chat button */}
+      {/* Floating chat button + hint */}
       {!fullscreen && (
-        <button
-          onClick={() => setChatOpen(true)}
-          className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-violet-500 text-white shadow-lg shadow-violet-500/30 flex items-center justify-center active:scale-90 transition-transform"
-        >
-          <MessageCircle size={22} />
-        </button>
+        <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">
+          {hintData?.hint && !chatOpen && (
+            <button
+              onClick={() => setChatOpen(true)}
+              className="max-w-[200px] bg-violet-500/90 text-white text-xs px-3 py-2 rounded-xl rounded-br-sm shadow-lg backdrop-blur-sm animate-fade-in"
+            >
+              {hintData.hint}
+            </button>
+          )}
+          <button
+            onClick={() => setChatOpen(true)}
+            className="w-14 h-14 rounded-full bg-violet-500 text-white shadow-lg shadow-violet-500/30 flex items-center justify-center active:scale-90 transition-transform"
+          >
+            <MessageCircle size={22} />
+          </button>
+        </div>
       )}
 
-      <ChatDrawer topicId={tid} open={chatOpen} onClose={() => setChatOpen(false)} />
+      <ChatDrawer topicId={tid} open={chatOpen} onClose={() => setChatOpen(false)} slideContext={slideContext} />
     </div>
   )
 }

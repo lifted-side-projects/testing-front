@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/Button'
-import { ArrowLeft, Presentation, CheckCheck, BookOpen, AlertCircle, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Presentation, CheckCheck, BookOpen, AlertCircle, MessageCircle, Layers } from 'lucide-react'
 
 export function LessonPage() {
   const { topicId } = useParams<{ topicId: string }>()
@@ -15,6 +15,15 @@ export function LessonPage() {
     queryFn: () => api.getPresentation(tid),
     retry: false,
   })
+
+  // Check if flashcards exist
+  const { data: flashcardDeck } = useQuery({
+    queryKey: ['flashcard-deck', tid],
+    queryFn: () => api.getFlashcardDeck(tid),
+    retry: false,
+  })
+
+  const hasFlashcards = !!flashcardDeck && flashcardDeck.cardCount > 0
 
   const hasPresentation = !!presData && presData.presentations.length > 0
   const totalSlides = hasPresentation
@@ -90,6 +99,22 @@ export function LessonPage() {
               <p className="text-ink-400 text-xs mt-0.5">8 вопросов, AI-проверка</p>
             </div>
           </button>
+
+          {/* Flashcards */}
+          {hasFlashcards && (
+            <button
+              onClick={() => navigate(`/flashcards/${topicId}`)}
+              className="w-full flex items-center gap-4 bg-gradient-to-r from-coral-500/10 to-coral-500/5 border border-coral-500/20 rounded-2xl p-4 active:scale-[0.98] transition-transform text-left"
+            >
+              <div className="w-12 h-12 rounded-xl bg-coral-500/20 flex items-center justify-center shrink-0">
+                <Layers size={22} className="text-coral-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-ink-100 text-sm font-semibold">Карточки</p>
+                <p className="text-ink-400 text-xs mt-0.5">{flashcardDeck!.cardCount} карточек для повторения</p>
+              </div>
+            </button>
+          )}
 
           {/* Chat with tutor */}
           <button

@@ -1,26 +1,19 @@
 import { useState, useCallback, useRef } from 'react'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { api } from './api'
-import type { SlideContext } from './api'
+import type { ChatMessage } from './useChat'
 
-export interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
-
-export function useChat(topicId: number, slideContext?: SlideContext) {
+export function useQuizErrorChat(sessionId: string, questionId?: number) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
-  const abortRef = useRef<AbortController | null>(null)
-  // Track messages snapshot for suggestions query key
   const [suggestionsKey, setSuggestionsKey] = useState(0)
   const messagesForSuggestions = useRef<ChatMessage[]>([])
 
   const queryClient = useQueryClient()
 
   const { data: suggestions = [], isLoading: suggestionsLoading } = useQuery({
-    queryKey: ['chat-suggestions', topicId, suggestionsKey],
-    queryFn: () => api.chatSuggestions(topicId, messagesForSuggestions.current, slideContext),
+    queryKey: ['quiz-error-suggestions', sessionId, questionId, suggestionsKey],
+    queryFn: () => api.quizErrorChatSuggestions(sessionId, messagesForSuggestions.current, questionId),
     staleTime: Infinity,
     retry: false,
   })
@@ -29,15 +22,14 @@ export function useChat(topicId: number, slideContext?: SlideContext) {
     if (!text.trim() || isStreaming) return
 
     const userMsg: ChatMessage = { role: 'user', content: text.trim() }
-    // Clear suggestions while streaming
-    queryClient.setQueryData(['chat-suggestions', topicId, suggestionsKey], [])
+    queryClient.setQueryData(['quiz-error-suggestions', sessionId, questionId, suggestionsKey], [])
     setMessages(prev => [...prev, userMsg, { role: 'assistant', content: '' }])
     setIsStreaming(true)
 
     let finalMessages: ChatMessage[] = []
 
     try {
-      const stream = await api.chatStream(topicId, text.trim(), slideContext)
+      const stream = await api.quizErrorChatStream(sessionId, text.trim(), questionId)
       const reader = stream.getReader()
       const decoder = new TextDecoder()
 
@@ -55,7 +47,7 @@ export function useChat(topicId: number, slideContext?: SlideContext) {
           return updated
         })
       }
-    } catch (err) {
+    } catch {
       setMessages(prev => {
         const updated = [...prev]
         const last = updated[updated.length - 1]
@@ -67,17 +59,10 @@ export function useChat(topicId: number, slideContext?: SlideContext) {
       })
     } finally {
       setIsStreaming(false)
-      // Trigger new suggestions fetch with updated messages
       messagesForSuggestions.current = finalMessages
       setSuggestionsKey(k => k + 1)
     }
-  }, [topicId, isStreaming, queryClient, suggestionsKey])
+  }, [sessionId, questionId, isStreaming, queryClient, suggestionsKey])
 
-  const clearMessages = useCallback(() => {
-    setMessages([])
-    messagesForSuggestions.current = []
-    setSuggestionsKey(k => k + 1)
-  }, [])
-
-  return { messages, isStreaming, sendMessage, clearMessages, suggestions, suggestionsLoading }
+  return { messages, isStreaming, sendMessage, suggestions, suggestionsLoading }
 }

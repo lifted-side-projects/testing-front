@@ -5,7 +5,6 @@ import { api } from '@/lib/api'
 import { Button } from '@/components/Button'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, ChevronLeft, ChevronRight, Send, Loader2, Clock, ClipboardList } from 'lucide-react'
-import { addCoins } from '@/lib/gamification'
 
 export function QuizPage() {
   const { topicId } = useParams<{ topicId: string }>()
@@ -28,7 +27,7 @@ export function QuizPage() {
     mutationFn: (data: { sessionId: string; answers: Record<number, unknown> }) =>
       api.submitQuiz(data.sessionId, data.answers),
     onSuccess: (result) => {
-      addCoins(result.passed ? 20 : 5)
+      // Coins awarded on backend via missions system
       navigate(`/quiz/${session!.sessionId}/result`, { state: { result, topicId: tid } })
     },
   })

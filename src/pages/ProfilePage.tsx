@@ -4,7 +4,6 @@ import { api } from '@/lib/api'
 import { getUser, clearAuth } from '@/lib/auth'
 import {
   getCurrentRank, getNextRank, getProgressToNextRank, RANKS,
-  getStreak, getCoins, getFreezesCount,
 } from '@/lib/gamification'
 import { PageShell } from '@/components/PageShell'
 import { Button } from '@/components/Button'
@@ -17,9 +16,15 @@ import {
 export function ProfilePage() {
   const navigate = useNavigate()
   const user = getUser()
-  const streak = getStreak()
-  const coins = getCoins()
-  const freezes = getFreezesCount()
+
+  const { data: gamification } = useQuery({
+    queryKey: ['gamification'],
+    queryFn: api.getGamification,
+  })
+
+  const streak = gamification?.streak ?? 0
+  const coins = gamification?.coins ?? 0
+  const freezes = gamification?.freezes ?? 0
 
   const { data: stats } = useQuery({
     queryKey: ['knowledge-stats'],
