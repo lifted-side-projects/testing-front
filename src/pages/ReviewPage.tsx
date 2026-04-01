@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getDueCards, updateCardAfterReview, type SRSCard } from '@/lib/srs'
-import { addCoins } from '@/lib/gamification'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Coins, Brain, RotateCcw, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/Button'
@@ -25,7 +24,7 @@ export function ReviewPage() {
     setFlipped(false)
 
     if (currentIdx + 1 >= total) {
-      addCoins(10)
+      // Coins awarded on backend
       setCompleted(true)
     } else {
       setCurrentIdx((i) => i + 1)

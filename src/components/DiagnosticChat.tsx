@@ -92,7 +92,7 @@ export function DiagnosticChat({
 
   // Safety fallback: allow skip after 15s in case of agent error
   useEffect(() => {
-    const timer = setTimeout(() => setCanSkip(true), 15_000)
+    const timer = setTimeout(() => setCanSkip(true), 5_000)
     return () => clearTimeout(timer)
   }, [])
 
@@ -152,9 +152,10 @@ export function DiagnosticChat({
         <ChatSuggestions
           suggestions={suggestions}
           isLoading={suggestionsLoading}
-          hasMessages={messages.length > 0}
+          hasMessages={messages.some(m => m.role === 'user')}
           isStreaming={isStreaming}
           onSelect={sendMessage}
+          initialSuggestions={['Я выбрал наугад', 'Я не знаю как решить эту задачу']}
         />
       )}
 

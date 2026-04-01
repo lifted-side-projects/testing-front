@@ -1,5 +1,3 @@
-import { addCoins } from './gamification'
-
 export interface MissionDefinition {
   id: string
   title: string
@@ -100,7 +98,6 @@ export function claimMissionReward(missionId: string): number {
   if (!mission || !mission.completed || mission.rewardClaimed) return 0
 
   mission.rewardClaimed = true
-  addCoins(mission.reward)
 
   saveProgress(missions.map(({ id, current, completed, rewardClaimed }) => ({
     id, current, completed, rewardClaimed,

@@ -6,11 +6,18 @@ interface ChatSuggestionsProps {
   hasMessages: boolean
   isStreaming: boolean
   onSelect: (text: string) => void
+  initialSuggestions?: string[]
 }
 
-export function ChatSuggestions({ suggestions, isLoading, hasMessages, isStreaming, onSelect }: ChatSuggestionsProps) {
+export function ChatSuggestions({ suggestions, isLoading, hasMessages, isStreaming, onSelect, initialSuggestions }: ChatSuggestionsProps) {
   if (isStreaming) return null
-  if (!isLoading && suggestions.length === 0) return null
+
+  // Show initial suggestions when user hasn't sent any messages yet
+  const showInitial = initialSuggestions && initialSuggestions.length > 0 && !hasMessages
+  const displaySuggestions = showInitial ? initialSuggestions : suggestions
+  const effectiveLoading = showInitial ? false : isLoading
+
+  if (!effectiveLoading && displaySuggestions.length === 0) return null
 
   return (
     <div className="flex flex-wrap gap-2 px-4 pb-2">
@@ -20,7 +27,7 @@ export function ChatSuggestions({ suggestions, isLoading, hasMessages, isStreami
           <span className="text-[11px] text-ink-500">Попробуй спросить</span>
         </div>
       )}
-      {isLoading ? (
+      {effectiveLoading ? (
         <>
           {[1, 2, 3].map(i => (
             <div
@@ -31,7 +38,7 @@ export function ChatSuggestions({ suggestions, isLoading, hasMessages, isStreami
           ))}
         </>
       ) : (
-        suggestions.map(text => (
+        displaySuggestions.map(text => (
           <button
             key={text}
             onClick={() => onSelect(text)}

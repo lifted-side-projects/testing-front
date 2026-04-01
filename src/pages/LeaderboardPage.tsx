@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { getUser } from '@/lib/auth'
-import { getCurrentRank, getStreak, getCoins } from '@/lib/gamification'
+import { getCurrentRank } from '@/lib/gamification'
 import { getLeaderboard, injectCurrentUser, getSortedMetric, type LeaderboardUser } from '@/data/leaderboardMock'
 import { PageShell } from '@/components/PageShell'
 import { cn } from '@/lib/utils'
@@ -20,8 +20,12 @@ const TABS: { key: SortBy; label: string }[] = [
 export function LeaderboardPage() {
   const navigate = useNavigate()
   const user = getUser()
-  const streak = getStreak()
-  const coins = getCoins()
+  const { data: gamification } = useQuery({
+    queryKey: ['gamification'],
+    queryFn: api.getGamification,
+  })
+  const streak = gamification?.streak ?? 0
+  const coins = gamification?.coins ?? 0
   const [sortBy, setSortBy] = useState<SortBy>('progress')
 
   const { data: stats, isLoading } = useQuery({

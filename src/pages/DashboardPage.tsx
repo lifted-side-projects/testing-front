@@ -48,6 +48,7 @@ export function DashboardPage() {
   const streak = gamification?.streak ?? 0
   const freezes = gamification?.freezes ?? 0
 
+  const countdown = getCountdown()
   const masteredPercent = stats ? Math.round((stats.mastered / stats.total) * 100) : 0
   const rank = getCurrentRank(masteredPercent)
   const nextRank = getNextRank(masteredPercent)

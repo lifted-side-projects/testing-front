@@ -265,6 +265,8 @@ export function DiagnosticPage() {
   const [openAnswer, setOpenAnswer] = useState('')
   const [correctCount, setCorrectCount] = useState(0)
   const [incorrectCount, setIncorrectCount] = useState(0)
+  // Per-question results: 'correct' | 'incorrect' | null (unanswered)
+  const [questionResults, setQuestionResults] = useState<(null | 'correct' | 'incorrect')[]>([])
   // Auto-open review overlay after a brief delay showing the wrong answer highlight
   const [showReviewOverlay, setShowReviewOverlay] = useState(false)
   // Matching: which key is actively selected
@@ -276,6 +278,7 @@ export function DiagnosticPage() {
     onSuccess: (data) => {
       setSessionId(data.sessionId)
       setQuestions(data.questions)
+      setQuestionResults(new Array(data.questions.length).fill(null))
       setPhase('question')
     },
   })
@@ -322,9 +325,11 @@ export function DiagnosticPage() {
 
     if (result.isCorrect) {
       setCorrectCount(c => c + 1)
+      setQuestionResults(prev => { const next = [...prev]; next[currentIdx] = 'correct'; return next })
       setPhase('correct')
     } else {
       setIncorrectCount(c => c + 1)
+      setQuestionResults(prev => { const next = [...prev]; next[currentIdx] = 'incorrect'; return next })
       setPhase('incorrect')
     }
 
@@ -443,16 +448,27 @@ export function DiagnosticPage() {
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1.5 bg-ink-800 rounded-full mb-6 overflow-hidden flex">
-        <div
-          className="h-full bg-sage-500 rounded-full transition-all duration-500"
-          style={{ width: `${(correctCount / Math.max(questions.length, 1)) * 100}%` }}
-        />
-        <div
-          className="h-full bg-coral-500 rounded-full transition-all duration-500"
-          style={{ width: `${(incorrectCount / Math.max(questions.length, 1)) * 100}%` }}
-        />
+      {/* Progress dots — one per question */}
+      <div className="flex items-center gap-1 mb-6 flex-wrap">
+        {questionResults.map((result, i) => (
+          <span
+            key={i}
+            className={cn(
+              'w-2 h-2 rounded-full transition-colors duration-300',
+              i === currentIdx
+                ? result === 'correct'
+                  ? 'bg-sage-400 ring-2 ring-sage-400/40'
+                  : result === 'incorrect'
+                    ? 'bg-coral-400 ring-2 ring-coral-400/40'
+                    : 'bg-amber-400 ring-2 ring-amber-400/40'
+                : result === 'correct'
+                  ? 'bg-sage-500'
+                  : result === 'incorrect'
+                    ? 'bg-coral-500'
+                    : 'bg-ink-600',
+            )}
+          />
+        ))}
       </div>
 
       {/* Question with slide animation */}
