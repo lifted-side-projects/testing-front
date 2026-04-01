@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { api, type DiagnosticQuestion } from '@/lib/api'
 import { setDiagnosticDone } from '@/lib/auth'
 import { DiagnosticChat } from '@/components/DiagnosticChat'
-import { Beaker, Check, X, ArrowRight } from 'lucide-react'
+import { Beaker, Check, X, ArrowRight, Search, Brain, Target, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Phase = 'loading' | 'question' | 'correct' | 'incorrect' | 'completing' | 'complete-error' | 'done'
+type Phase = 'intro' | 'loading' | 'question' | 'correct' | 'incorrect' | 'completing' | 'complete-error' | 'done'
 
 const QUESTION_TYPE_LABELS: Record<string, string> = {
   single_choice: 'Один ответ',
@@ -257,7 +257,7 @@ function MatchingQuestion({
 export function DiagnosticPage() {
   const navigate = useNavigate()
 
-  const [phase, setPhase] = useState<Phase>('loading')
+  const [phase, setPhase] = useState<Phase>('intro')
   const [sessionId, setSessionId] = useState('')
   const [questions, setQuestions] = useState<DiagnosticQuestion[]>([])
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -301,10 +301,10 @@ export function DiagnosticPage() {
     },
   })
 
-  useEffect(() => {
+  const handleStartDiagnostic = useCallback(() => {
+    setPhase('loading')
     startMutation.mutate()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [startMutation])
 
   // Auto-open review overlay 800ms after incorrect answer (let user see the highlighted wrong answer first)
   useEffect(() => {
@@ -364,6 +364,76 @@ export function DiagnosticPage() {
       setPhase('question')
     }
   }, [currentIdx, questions.length, sessionId, completeMutation])
+
+  // Intro — explain what diagnostic is about
+  if (phase === 'intro') {
+    const steps = [
+      {
+        icon: <Target size={20} className="text-amber-400" />,
+        title: '38 вопросов по химии',
+        desc: 'Разной сложности — от базовых до олимпиадных. Не переживай, это не оценка.',
+      },
+      {
+        icon: <Search size={20} className="text-violet-400" />,
+        title: 'Репетитор ищет пробелы',
+        desc: 'При ошибке ИИ-репетитор задаст пару вопросов, чтобы понять, какой именно темы тебе не хватает.',
+      },
+      {
+        icon: <Brain size={20} className="text-sage-400" />,
+        title: 'Персональный план',
+        desc: 'По результатам мы составим план обучения именно под твои слабые места.',
+      },
+    ]
+
+    return (
+      <div className="min-h-dvh flex flex-col px-6 py-8 page-enter">
+        <div className="flex-1 flex flex-col justify-center">
+          {/* Header */}
+          <div className="mb-10">
+            <div className="w-14 h-14 rounded-2xl bg-amber-400/15 border border-amber-400/20 flex items-center justify-center mb-5">
+              <Sparkles size={28} className="text-amber-400" />
+            </div>
+            <h1 className="text-2xl font-display font-bold text-ink-100 leading-tight mb-2">
+              Диагностика знаний
+            </h1>
+            <p className="text-ink-400 text-[15px] leading-relaxed">
+              Прежде чем начать обучение, нужно понять, что ты уже знаешь, а где есть пробелы. Это займёт 15–20 минут.
+            </p>
+          </div>
+
+          {/* Steps */}
+          <div className="space-y-4 mb-10">
+            {steps.map((step, i) => (
+              <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-ink-800/40 border border-ink-700/30">
+                <div className="w-10 h-10 rounded-xl bg-ink-800/80 flex items-center justify-center shrink-0">
+                  {step.icon}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-ink-100 text-sm font-semibold mb-0.5">{step.title}</p>
+                  <p className="text-ink-400 text-xs leading-relaxed">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Important note */}
+          <div className="p-3.5 rounded-xl bg-violet-500/8 border border-violet-500/15 mb-8">
+            <p className="text-violet-300 text-xs leading-relaxed">
+              Отвечай честно — не угадывай. Чем точнее результат, тем лучше будет план обучения. Если не знаешь ответ — так и скажи репетитору.
+            </p>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={handleStartDiagnostic}
+          className="w-full py-4 rounded-2xl font-semibold text-base bg-amber-400 text-ink-950 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-amber-400/20"
+        >
+          Начать диагностику
+        </button>
+      </div>
+    )
+  }
 
   // Loading state
   if (phase === 'loading' || startMutation.isPending) {
@@ -677,7 +747,7 @@ export function DiagnosticPage() {
                 <div className="w-8 h-8 rounded-full bg-coral-500/30 flex items-center justify-center">
                   <X size={16} className="text-coral-300" />
                 </div>
-                <span className="text-coral-200 text-sm font-medium">Неправильно — разбираем...</span>
+                <span className="text-coral-200 text-sm font-medium">Неверно — выясняем причину...</span>
               </div>
             </div>
           )}

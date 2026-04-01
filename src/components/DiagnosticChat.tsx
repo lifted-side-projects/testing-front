@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useDiagnosticChat } from '@/lib/useDiagnosticChat'
 import { MessageBubble } from '@/components/MessageBubble'
 import { ChatSuggestions } from '@/components/ChatSuggestions'
-import { Send, Loader2, Brain, ArrowRight, X as XIcon, SkipForward } from 'lucide-react'
+import { Send, Loader2, Search, Brain, ArrowRight, X as XIcon, SkipForward } from 'lucide-react'
 import { Button } from '@/components/Button'
 
 interface DiagnosticChatProps {
@@ -133,7 +133,7 @@ export function DiagnosticChat({
       >
         {messages.length === 0 && !isStreaming && (
           <div className="flex items-center justify-center py-6">
-            <p className="text-ink-500 text-xs">Репетитор сейчас задаст вопрос...</p>
+            <p className="text-ink-500 text-xs">Репетитор анализирует ответ...</p>
           </div>
         )}
 
@@ -155,7 +155,7 @@ export function DiagnosticChat({
           hasMessages={messages.some(m => m.role === 'user')}
           isStreaming={isStreaming}
           onSelect={sendMessage}
-          initialSuggestions={['Я выбрал наугад', 'Я не знаю как решить эту задачу']}
+          initialSuggestions={['Я угадал', 'Я перепутал темы', 'Не помню эту тему']}
         />
       )}
 
@@ -168,7 +168,7 @@ export function DiagnosticChat({
             onClick={handleClose}
             className="w-full flex items-center justify-center gap-2"
           >
-            Понятно, дальше
+            Следующий вопрос
             <ArrowRight size={16} />
           </Button>
         </div>
@@ -181,7 +181,7 @@ export function DiagnosticChat({
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder="Объясни свой ответ..."
+                placeholder="Напиши свой ответ..."
                 className="flex-1 bg-ink-800 text-ink-100 placeholder-ink-500 rounded-xl px-3.5 py-2.5 text-[13px] outline-none focus:ring-1 focus:ring-violet-500/50"
                 disabled={isStreaming}
               />
@@ -200,7 +200,7 @@ export function DiagnosticChat({
               className="w-full flex items-center justify-center gap-1.5 text-ink-500 text-xs py-1.5 hover:text-ink-300 transition-colors"
             >
               <SkipForward size={12} />
-              Пропустить разбор
+              Пропустить
             </button>
           )}
         </div>
@@ -222,9 +222,9 @@ export function DiagnosticChat({
         <div className="flex items-center justify-between px-4 py-3 border-b border-ink-800/40">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center">
-              <Brain size={12} className="text-violet-400" />
+              <Search size={12} className="text-violet-400" />
             </div>
-            <span className="text-ink-300 text-xs font-medium">Разбор с репетитором</span>
+            <span className="text-ink-300 text-xs font-medium">Ищем пробел</span>
           </div>
           {onClose && (
             <button
@@ -236,36 +236,12 @@ export function DiagnosticChat({
           )}
         </div>
 
-        {/* Answer context card */}
-        {(questionText || correctAnswer !== undefined) && (
-          <div className="mx-4 mt-3 p-3 rounded-xl bg-ink-800/50 border border-ink-700/30 space-y-2">
-            {questionText && (
-              <p className="text-ink-400 text-xs leading-relaxed line-clamp-2">{questionText}</p>
-            )}
-            <div className="flex gap-3">
-              {studentAnswer !== undefined && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-ink-500 text-[10px] uppercase tracking-wider mb-0.5">
-                    Твой ответ
-                  </p>
-                  <p className="text-coral-300 text-xs leading-relaxed truncate">
-                    {formatAnswer(studentAnswer, questionType, options)}
-                  </p>
-                </div>
-              )}
-              {correctAnswer !== undefined && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-ink-500 text-[10px] uppercase tracking-wider mb-0.5">
-                    Правильно
-                  </p>
-                  <p className="text-sage-300 text-xs leading-relaxed truncate">
-                    {formatAnswer(correctAnswer, questionType, options)}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Context hint */}
+        <div className="mx-4 mt-3 px-3 py-2 rounded-lg bg-violet-500/8 border border-violet-500/15">
+          <p className="text-violet-300/80 text-[11px] leading-relaxed">
+            Репетитор задаст пару вопросов, чтобы понять, где именно пробел. Отвечай честно.
+          </p>
+        </div>
 
         {chatContent}
       </motion.div>
@@ -279,7 +255,7 @@ export function DiagnosticChat({
         <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center">
           <Brain size={12} className="text-violet-400" />
         </div>
-        <span className="text-ink-400 text-xs">Репетитор — разбор ошибки</span>
+        <span className="text-ink-400 text-xs">Репетитор — поиск пробела</span>
       </div>
       {chatContent}
     </div>
