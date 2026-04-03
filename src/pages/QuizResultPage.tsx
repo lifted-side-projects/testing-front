@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
-import { QuizErrorChatDrawer } from '@/components/QuizErrorChatDrawer'
 import { cn } from '@/lib/utils'
 import {
   Trophy, XCircle, CheckCircle2, ArrowRight, RotateCcw,
@@ -50,8 +49,6 @@ export function QuizResultPage() {
     }
   }, [result, topicId])
 
-  const [chatOpen, setChatOpen] = useState(false)
-  const [chatQuestionId, setChatQuestionId] = useState<number | undefined>()
 
   if (!result || !result.answers) {
     navigate('/')
@@ -60,12 +57,6 @@ export function QuizResultPage() {
 
   const percentage = result.score <= 1 ? Math.round(result.score * 100) : Math.round(result.score)
   const passed = result.passed
-  const hasErrors = result.answers.some((a) => !a.isCorrect)
-
-  function openChat(questionId?: number) {
-    setChatQuestionId(questionId)
-    setChatOpen(true)
-  }
 
   return (
     <div className="min-h-dvh flex flex-col px-5 py-6 page-enter">
@@ -119,23 +110,6 @@ export function QuizResultPage() {
         )}
       </div>
 
-      {/* AI Error Analysis button */}
-      {hasErrors && (
-        <button
-          onClick={() => openChat()}
-          className="w-full flex items-center gap-3 bg-gradient-to-r from-coral-500/10 to-violet-500/10 border border-coral-500/20 rounded-2xl p-4 mb-6 active:scale-[0.98] transition-transform"
-        >
-          <div className="w-10 h-10 rounded-xl bg-coral-500/20 flex items-center justify-center shrink-0">
-            <Brain size={20} className="text-coral-400" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-ink-100 text-sm font-medium">Разобрать ошибки с ИИ</p>
-            <p className="text-ink-500 text-xs">Репетитор объяснит каждую ошибку</p>
-          </div>
-          <ArrowRight size={16} className="text-ink-500" />
-        </button>
-      )}
-
       {/* Answers review */}
       <div className="flex-1">
         <h3 className="text-ink-400 text-xs font-medium uppercase tracking-wider mb-3">Разбор ответов</h3>
@@ -178,14 +152,6 @@ export function QuizResultPage() {
                       <p className="text-ink-400 text-xs leading-relaxed">{answer.explanation}</p>
                     </div>
                   )}
-                  {/* Ask about this specific question */}
-                  <button
-                    onClick={() => openChat(answer.questionId)}
-                    className="flex items-center gap-1.5 text-violet-400 text-xs font-medium mt-1 active:opacity-70"
-                  >
-                    <Brain size={12} />
-                    Спросить про это
-                  </button>
                 </div>
               )}
 
@@ -246,13 +212,6 @@ export function QuizResultPage() {
         </div>
       </div>
 
-      {/* Error Chat Drawer */}
-      <QuizErrorChatDrawer
-        sessionId={result.sessionId}
-        questionId={chatQuestionId}
-        open={chatOpen}
-        onClose={() => setChatOpen(false)}
-      />
     </div>
   )
 }

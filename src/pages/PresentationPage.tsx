@@ -129,9 +129,7 @@ export function PresentationPage() {
   }
 
   const slide = presentation.slides[currentSlide]
-  const imageUrl = presentation.folderName
-    ? api.getSlideImage(presentation.folderName, slide.slideNumber)
-    : ''
+  const imageUrl = slide.imagePath || ''
 
   const slideContext: SlideContext | undefined = slide ? {
     slideNumber: slide.slideNumber,
@@ -220,7 +218,7 @@ export function PresentationPage() {
       <div className="px-4 pb-4 overflow-x-auto no-scrollbar">
         <div className="flex gap-2">
           {presentation.slides.map((s, i) => {
-            const thumbUrl = presentation.folderName ? api.getSlideImage(presentation.folderName, s.slideNumber) : ''
+            const thumbUrl = s.imagePath || ''
             return (
               <button
                 key={i}

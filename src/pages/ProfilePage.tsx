@@ -189,12 +189,12 @@ export function ProfilePage() {
             </div>
 
             <div className="space-y-3">
-              {Object.entries(stats.byGrade).map(([grade, data]) => {
+              {stats.byGrade.map((data) => {
                 const pct = data.total > 0 ? Math.round((data.mastered / data.total) * 100) : 0
                 return (
-                  <div key={grade}>
+                  <div key={data.grade}>
                     <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-ink-300">{grade} класс</span>
+                      <span className="text-ink-300">{data.grade} класс</span>
                       <span className="text-ink-500 font-mono">{data.mastered}/{data.total}</span>
                     </div>
                     <div className="h-2 bg-ink-700/50 rounded-full overflow-hidden">

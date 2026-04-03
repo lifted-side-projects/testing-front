@@ -1,6 +1,6 @@
 import { getToken, clearAuth } from './auth'
 
-const BASE = import.meta.env.VITE_API_URL || '/api'
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
@@ -76,9 +76,6 @@ export const api = {
   getPresentation: (topicId: number) =>
     request<PresentationResponse>(`/student/presentation/${topicId}`),
 
-  getSlideImage: (folderName: string, slideNumber: number) =>
-    `${BASE}/slide-image/${folderName}/${slideNumber}`,
-
   // Quiz (read-only — generation happens via admin)
   getAvailableQuiz: (topicId: number) =>
     request<QuizSession>(`/student/quiz/available/${topicId}`),
@@ -144,39 +141,6 @@ export const api = {
 
   getReviewSchedule: () =>
     request<ReviewDueTopic[]>('/student/reviews/schedule'),
-
-  // Quiz error chat
-  quizErrorChatStream: async (
-    sessionId: string,
-    message: string,
-    questionId?: number,
-  ): Promise<ReadableStream<Uint8Array>> => {
-    const token = getToken()
-    const res = await fetch(`${BASE}/student/quiz/${sessionId}/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ message, questionId }),
-    })
-    if (res.status === 401) {
-      clearAuth()
-      window.location.href = '/login'
-      throw new Error('Unauthorized')
-    }
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      throw new Error(body.error || `HTTP ${res.status}`)
-    }
-    return res.body!
-  },
-
-  quizErrorChatSuggestions: (sessionId: string, messages: { role: string; content: string }[], questionId?: number) =>
-    request<{ suggestions: string[] }>(`/student/quiz/${sessionId}/chat/suggestions`, {
-      method: 'POST',
-      body: JSON.stringify({ messages, questionId }),
-    }).then(r => r.suggestions).catch(() => []),
 
   chatSuggestions: (topicId: number, messages: { role: string; content: string }[], slideContext?: SlideContext) =>
     request<{ suggestions: string[] }>(`/student/chat/${topicId}/suggestions`, {
@@ -307,7 +271,7 @@ export interface KnowledgeStats {
   mastered: number
   learning: number
   unknown: number
-  byGrade: Record<string, { total: number; mastered: number; learning: number; unknown: number }>
+  byGrade: Array<{ grade: number; total: number; mastered: number; learning: number; unknown: number }>
 }
 
 export interface LearningPlan {

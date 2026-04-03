@@ -123,12 +123,9 @@ export function QuizPage() {
           <span className={cn(
             'text-[10px] font-medium uppercase tracking-wider px-2 py-1 rounded-md',
             question.questionType === 'single_choice' ? 'bg-sage-500/15 text-sage-400' :
-            question.questionType === 'multiple_choice' ? 'bg-violet-500/15 text-violet-400' :
-            'bg-amber-400/15 text-amber-400'
+            'bg-violet-500/15 text-violet-400'
           )}>
-            {question.questionType === 'single_choice' ? 'Один ответ' :
-             question.questionType === 'multiple_choice' ? 'Несколько ответов' :
-             'Открытый ответ'}
+            {question.questionType === 'single_choice' ? 'Один ответ' : 'Несколько ответов'}
           </span>
         </div>
 
@@ -207,19 +204,6 @@ export function QuizPage() {
           </div>
         )}
 
-        {/* Open answer */}
-        {question.questionType === 'open_answer' && (
-          <div>
-            <textarea
-              value={(answers[question.id] as string) || ''}
-              onChange={(e) => setAnswer(question.id, e.target.value)}
-              placeholder="Напиши свой ответ..."
-              rows={5}
-              className="w-full bg-ink-800/60 border border-ink-700/50 rounded-xl px-4 py-3 text-sm text-ink-100 placeholder:text-ink-600 focus:outline-none focus:border-amber-400/30 resize-none"
-            />
-            <p className="text-ink-500 text-xs mt-2">AI проверит ваш ответ</p>
-          </div>
-        )}
       </div>
 
       {/* Navigation */}
