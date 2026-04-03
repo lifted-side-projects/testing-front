@@ -16,7 +16,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (res.status === 401) {
     clearAuth()
-    window.location.href = '/login'
+    window.location.href = import.meta.env.BASE_URL + 'login'
     throw new Error('Unauthorized')
   }
 
@@ -191,7 +191,7 @@ export const api = {
     })
     if (res.status === 401) {
       clearAuth()
-      window.location.href = '/login'
+      window.location.href = import.meta.env.BASE_URL + 'login'
       throw new Error('Unauthorized')
     }
     if (!res.ok) {
@@ -216,7 +216,7 @@ export const api = {
     })
     if (res.status === 401) {
       clearAuth()
-      window.location.href = '/login'
+      window.location.href = import.meta.env.BASE_URL + 'login'
       throw new Error('Unauthorized')
     }
     if (!res.ok) {

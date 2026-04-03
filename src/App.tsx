@@ -50,7 +50,7 @@ export default function App() {
       <ToastProvider>
         <div className="grain">
           <ErrorBoundary>
-            <BrowserRouter>
+            <BrowserRouter basename="/testing-front">
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
